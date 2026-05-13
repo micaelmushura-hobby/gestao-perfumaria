@@ -16,7 +16,7 @@ export function useBaserow() {
       // Always enforce user_id filter
       filters.filters.push({ field: 'user_id', type: 'equal', value: user.id.toString() });
 
-      const response = await api.get<BaserowResponse<T>>(`/database/rows/table/${tableId}/`, {
+      const response = await api.get<BaserowResponse<T>>(`database/rows/table/${tableId}/`, {
         params: {
           ...params,
           user_field_names: true,
@@ -36,7 +36,7 @@ export function useBaserow() {
     if (!tableId || !user) return;
     setLoading(true);
     try {
-      const response = await api.post<T>(`/database/rows/table/${tableId}/?user_field_names=true`, {
+      const response = await api.post<T>(`database/rows/table/${tableId}/?user_field_names=true`, {
         ...data,
         user_id: user.id,
         criado_em: new Date().toISOString(),
@@ -54,7 +54,7 @@ export function useBaserow() {
     if (!tableId) return;
     setLoading(true);
     try {
-      const response = await api.patch<T>(`/database/rows/table/${tableId}/${rowId}/?user_field_names=true`, data);
+      const response = await api.patch<T>(`database/rows/table/${tableId}/${rowId}/?user_field_names=true`, data);
       return response.data;
     } catch (err) {
       console.error(`Error updating row ${rowId} in table ${tableId}:`, err);
@@ -68,7 +68,7 @@ export function useBaserow() {
     if (!tableId) return;
     setLoading(true);
     try {
-      await api.delete(`/database/rows/table/${tableId}/${rowId}/`);
+      await api.delete(`database/rows/table/${tableId}/${rowId}/`);
     } catch (err) {
       console.error(`Error deleting row ${rowId} from table ${tableId}:`, err);
       throw err;

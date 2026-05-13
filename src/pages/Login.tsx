@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, Mail, Lock } from 'lucide-react';
-import { api, TABLES } from '../services/api';
+import { usuariosService } from '../services/usuariosService';
 import { useAuth } from '../contexts/AuthContext';
-import { Usuario, BaserowResponse } from '../types';
+import { Usuario } from '../types';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,21 +19,10 @@ export const Login: React.FC = () => {
     setError('');
 
     try {
-      // Simplistic auth: find user by email and senha in Baserow
-      const response = await api.get<BaserowResponse<Usuario>>(`/database/rows/table/${TABLES.USUARIOS}/`, {
-        params: {
-          filters: JSON.stringify({
-            filter_type: 'AND',
-            filters: [
-              { field: 'email', type: 'equal', value: email },
-              { field: 'senha', type: 'equal', value: senha },
-            ],
-          }),
-        },
-      });
+      const data = await usuariosService.getByEmailAndSenha(email, senha);
 
-      if (response.data.results.length > 0) {
-        const userData = response.data.results[0];
+      if (data.results.length > 0) {
+        const userData = data.results[0];
         // Don't store password in local state
         const { senha: _, ...safeUser } = userData;
         login(safeUser as Usuario);

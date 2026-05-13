@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus, User, Mail, Phone, Lock } from 'lucide-react';
-import { api, TABLES } from '../services/api';
+import { usuariosService } from '../services/usuariosService';
 
 export const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -21,27 +21,19 @@ export const Register: React.FC = () => {
 
     try {
       // Check if user already exists
-      const checkResponse = await api.get(`/database/rows/table/${TABLES.USUARIOS}/`, {
-        params: {
-          filters: JSON.stringify({
-            filter_type: 'AND',
-            filters: [{ field: 'email', type: 'equal', value: formData.email }],
-          }),
-        },
-      });
+      const checkData = await usuariosService.getByEmail(formData.email);
 
-      if (checkResponse.data.results.length > 0) {
+      if (checkData.results.length > 0) {
         setError('Este e-mail já está em uso.');
         setLoading(false);
         return;
       }
 
-      await api.post(`/database/rows/table/${TABLES.USUARIOS}/?user_field_names=true`, {
+      await usuariosService.create({
         nome: formData.nome,
         email: formData.email,
         telefone: formData.telefone,
         senha: formData.senha,
-        criado_em: new Date().toISOString(),
       });
 
       navigate('/login', { state: { message: 'Conta criada com sucesso! Faça login para continuar.' } });
