@@ -44,7 +44,7 @@ export default function App() {
             <Route path="/configuracoes" element={<PrivateRoute><Configuracoes /></PrivateRoute>} />
             <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
             
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>
