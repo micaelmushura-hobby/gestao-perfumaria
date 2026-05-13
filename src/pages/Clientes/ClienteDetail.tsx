@@ -14,6 +14,7 @@ export const ClienteDetail: React.FC = () => {
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'Dinheiro' | 'Cartão'>('PIX');
   const [stats, setStats] = useState({
     totalGasto: 0,
     totalPago: 0,
@@ -48,10 +49,6 @@ export const ClienteDetail: React.FC = () => {
           order_by: '-criado_em'
         }),
         getRows<Parcela>(TABLES.PARCELAS, {
-           filters: JSON.stringify({
-            filter_type: 'AND',
-            filters: [{ field: 'user_id', type: 'equal', value: '' }], 
-          }),
           order_by: 'vencimento'
         })
       ]);
@@ -90,8 +87,9 @@ export const ClienteDetail: React.FC = () => {
 
   const handleToggleStatus = async (parcela: Parcela) => {
     const currentStatus = getSelectValue(parcela.status);
-    const newStatus = currentStatus === 'Pago' ? 'Em Aberto' : 'Pago';
-    const pago_em = newStatus === 'Pago' ? new Date().toISOString() : null;
+    const isPaying = currentStatus !== 'Pago';
+    const newStatus = isPaying ? 'Pago' : 'Em Aberto';
+    const pago_em = isPaying ? new Date().toISOString().split('T')[0] : null;
     
     try {
       await updateRow(TABLES.PARCELAS, parcela.id, {
@@ -109,10 +107,10 @@ export const ClienteDetail: React.FC = () => {
   const generateWhatsAppMessage = () => {
     if (!cliente) return '';
 
-    let message = '';
+    let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo da sua compra:\n\n`;
     
     vendas.forEach((venda, idx) => {
-      const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => a.numero_parcela - b.numero_parcela);
+      const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
       
       message += `*${venda.produto}* = ${formatCurrency(venda.valor_venda)}\n`;
       message += `Total 🟰 ${formatCurrency(venda.valor_venda)}\n\n`;
@@ -122,15 +120,21 @@ export const ClienteDetail: React.FC = () => {
         const statusVal = getSelectValue(p.status);
         if (statusVal === 'Pago') icon = ' ✅';
         else if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
-        else icon = ' ⏳';
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
       });
 
       if (idx < vendas.length - 1) {
-        message += '\n------------------\n\n';
+        message += `\n<<<<<<<<<<<<<<<<<<\n\n`;
       }
     });
+
+    message += `\n---\n\n*Resumo:*\n`;
+    message += `Total comprado: ${formatCurrency(stats.totalGasto)}\n`;
+    message += `Total pago: ${formatCurrency(stats.totalPago)}\n`;
+    message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n\n`;
+    message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
+    message += `Qualquer dúvida, fico à disposição.`;
 
     return encodeURIComponent(message);
   };
@@ -164,50 +168,85 @@ export const ClienteDetail: React.FC = () => {
           {cliente.nome.charAt(0).toUpperCase()}
         </div>
         <h2 className="text-3xl font-display font-bold text-center text-gray-800">{cliente.nome}</h2>
-        <div className="flex gap-2">
+        
+        <div className="flex flex-col items-center gap-4 w-full max-w-xs">
+          <div className="flex gap-2 w-full">
+            <a 
+              href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}`} 
+              target="_blank"
+              className="flex-1 flex items-center justify-center gap-2 text-green-600 bg-green-50 px-4 py-2.5 rounded-xl text-sm font-bold border border-green-100 active:scale-95 transition-transform"
+            >
+              <Phone size={16} />
+              {formatPhone(cliente.telefone)}
+            </a>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Forma de Pagto (WhatsApp)</label>
+            <div className="grid grid-cols-3 gap-1">
+              {(['PIX', 'Dinheiro', 'Cartão'] as const).map(method => (
+                <button
+                  key={method}
+                  onClick={() => setPaymentMethod(method)}
+                  className={cn(
+                    "py-1.5 text-[10px] font-bold rounded-lg transition-all",
+                    paymentMethod === method 
+                      ? "bg-brand-primary text-white shadow-sm" 
+                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                  )}
+                >
+                  {method}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <a 
-            href={`https://wa.me/55${cliente.telefone}`} 
+            href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${generateWhatsAppMessage()}`} 
             target="_blank"
-            className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full text-sm font-bold border border-green-100 active:scale-95 transition-transform"
+            className="w-full flex items-center justify-center gap-2 text-white bg-green-500 px-4 py-3 rounded-xl text-sm font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform"
           >
-            <Phone size={16} />
-            {formatPhone(cliente.telefone)}
-          </a>
-          <a 
-            href={`https://wa.me/55${cliente.telefone}?text=${generateWhatsAppMessage()}`} 
-            target="_blank"
-            className="flex items-center gap-2 text-white bg-green-500 px-4 py-2 rounded-full text-sm font-bold shadow-md active:scale-95 transition-transform"
-          >
-            <MessageSquare size={16} />
-            Cobranca
+            <MessageSquare size={18} />
+            Enviar resumo no WhatsApp
           </a>
         </div>
       </header>
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="card flex flex-col gap-1 p-4">
+        <div className="card flex flex-col gap-1 p-4 bg-white border-brand-primary/20">
           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
             <ShoppingBag size={10} /> Consumo Total
           </span>
           <span className="text-lg font-bold text-gray-700">{formatCurrency(stats.totalGasto)}</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4">
+        <div className="card flex flex-col gap-1 p-4 bg-white border-brand-primary/20">
           <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
             <TrendingUp size={10} /> Lucro Gerado
           </span>
           <span className="text-lg font-bold text-brand-primary">{formatCurrency(stats.lucroGerado)}</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4 border-l-4 border-l-green-500">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+        <div className="card flex flex-col gap-1 p-4 bg-green-50 border-green-200">
+          <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest flex items-center gap-1">
             <CheckCircle2 size={10} /> Total Pago
           </span>
-          <span className="text-lg font-bold text-green-600">{formatCurrency(stats.totalPago)}</span>
+          <span className="text-lg font-bold text-green-700">{formatCurrency(stats.totalPago)}</span>
+          <span className="text-[9px] text-green-600/60 font-medium">{stats.parcelasPagas} parcelas</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4 border-l-4 border-l-amber-500">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-            <Clock size={10} /> Valor Pendente
+        <div className="card flex flex-col gap-1 p-4 bg-amber-50 border-amber-200">
+          <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1">
+            <Clock size={10} /> Valor Aberto
           </span>
-          <span className="text-lg font-bold text-amber-600">{formatCurrency(stats.totalPendente)}</span>
+          <span className="text-lg font-bold text-amber-700">{formatCurrency(stats.totalPendente)}</span>
+          <span className="text-[9px] text-amber-600/60 font-medium">{stats.parcelasAbertas + stats.parcelasVencidas} em aberto</span>
+        </div>
+        <div className="card col-span-2 flex justify-between items-center p-3 bg-red-50 border-red-100">
+          <div className="flex flex-col">
+            <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Parcelas Vencidas</span>
+            <span className="text-lg font-bold text-red-700">{formatCurrency(stats.parcelasVencidas > 0 ? parcelas.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0) : 0)}</span>
+          </div>
+          <div className="bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-bold">
+            {stats.parcelasVencidas} ⚠️
+          </div>
         </div>
       </section>
 
@@ -226,70 +265,134 @@ export const ClienteDetail: React.FC = () => {
         
         <div className="flex flex-col gap-8">
           {vendas.length > 0 ? vendas.map(venda => {
-            const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => a.numero_parcela - b.numero_parcela);
+            const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
+            const vendaStatus = getSelectValue(venda.status);
             
             return (
-              <div key={venda.id} className="flex flex-col gap-3">
-                <div className="card p-4 bg-white border-brand-primary shadow-md relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-2 opacity-5 italic font-bold">SALE</div>
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-lg text-gray-800 leading-tight">{venda.produto}</span>
-                      <span className="text-xs font-bold text-brand-accent mt-1">{getSelectValue(venda.marca)}</span>
-                      <span className="text-[10px] text-gray-400 uppercase mt-1">{formatDate(venda.criado_em)}</span>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="font-bold text-lg text-brand-primary">{formatCurrency(venda.valor_venda)}</span>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase">Total da Venda</span>
-                    </div>
+              <div key={venda.id} className="flex flex-col gap-4">
+                <div className="card p-5 bg-white border-brand-accent/20 shadow-md relative overflow-hidden">
+                  <div className="absolute top-0 right-0 px-3 py-1 bg-brand-accent/10 rounded-bl-xl text-[9px] font-bold text-brand-accent uppercase tracking-wider">
+                    Compra #{venda.id}
                   </div>
                   
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-50">
-                    <div className="flex gap-2">
-                       <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{venda.qtd_parcelas}x Parcelas</span>
-                       <span className="bg-blue-50 text-blue-500 px-2 py-0.5 rounded text-[10px] font-bold uppercase">+{formatCurrency(venda.lucro)} Lucro</span>
+                  <div className="flex flex-col gap-4 mt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Produto</span>
+                      <span className="font-bold text-xl text-gray-800 leading-tight">{venda.produto}</span>
                     </div>
-                    <StatusBadge status={venda.status} date={venda.criado_em} />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Marca</span>
+                        <div className="flex items-center gap-1.5 text-sm font-bold text-brand-accent">
+                          <Briefcase size={14} />
+                          {getSelectValue(venda.marca)}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Data</span>
+                        <div className="text-sm font-bold text-gray-600">
+                          {formatDate(venda.criado_em)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50">
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Valor da Venda</span>
+                        <div className="text-lg font-bold text-gray-800">
+                          {formatCurrency(venda.valor_venda)}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Lucro</span>
+                        <div className="text-lg font-bold text-brand-primary">
+                          {formatCurrency(venda.lucro)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-50 text-[11px] font-bold uppercase tracking-wider">
+                      <div className="flex gap-2">
+                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg italic">{venda.qtd_parcelas}x Parcelas</span>
+                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Custo: {formatCurrency(venda.custo)}</span>
+                      </div>
+                      <StatusBadge status={vendaStatus} date={venda.criado_em} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="pl-4 flex flex-col gap-2">
-                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Parcelas desta compra</h4>
-                   {vendaParcelas.map(p => (
-                     <div key={p.id} className="card p-3 flex items-center justify-between bg-gray-50 border-none shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
-                            getSelectValue(p.status) === 'Pago' ? "bg-green-100 text-green-600" : "bg-brand-accent/10 text-brand-accent"
-                          )}>
-                            {p.numero_parcela}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase">Venc. {formatDate(p.vencimento)}</span>
-                            <span className="font-bold text-gray-700">{formatCurrency(p.valor_parcela)}</span>
-                          </div>
+                <div className="pl-2 flex flex-col gap-3">
+                   <div className="flex items-center gap-2 px-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-brand-accent"></span>
+                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Controle de Parcelas</h4>
+                   </div>
+                   
+                   <div className="flex flex-col gap-2">
+                    {vendaParcelas.map(p => {
+                      const statusVal = getSelectValue(p.status);
+                      const isPaid = statusVal === 'Pago';
+                      const overdue = isOverdue(p.vencimento, statusVal);
+
+                      return (
+                        <div key={p.id} className={cn(
+                          "card p-3 flex items-center justify-between border-dashed",
+                          isPaid ? "bg-green-50/30 border-green-100" : (overdue ? "bg-red-50/30 border-red-100" : "bg-white border-gray-100")
+                        )}>
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm transition-all",
+                                isPaid ? "bg-green-500 text-white" : (overdue ? "bg-red-500 text-white" : "bg-gray-100 text-gray-400")
+                              )}>
+                                {p.numero_parcela}
+                              </div>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase">Venc. {formatDate(p.vencimento)}</span>
+                                  {isPaid && <span className="text-[8px] font-bold text-green-500 uppercase tracking-tighter bg-green-100 px-1 rounded">Pago em {formatDate(p.pago_em || '')}</span>}
+                                </div>
+                                <span className={cn("font-bold text-base", isPaid ? "text-green-600" : "text-gray-700")}>
+                                  {formatCurrency(p.valor_parcela)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleToggleStatus(p)}
+                                className={cn(
+                                  "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm active:scale-95",
+                                  isPaid 
+                                    ? "text-amber-600 bg-white border border-amber-100 hover:bg-amber-50" 
+                                    : "text-white bg-green-500 border border-green-600 hover:bg-green-600"
+                                )}
+                              >
+                                {isPaid ? (
+                                  <>
+                                    <Clock size={12} />
+                                    Estornar
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 size={12} />
+                                    Pagar
+                                  </>
+                                )}
+                              </button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={p.status} date={p.vencimento} />
-                          <button 
-                            onClick={() => handleToggleStatus(p)}
-                            className={cn(
-                              "p-2 rounded-lg transition-colors",
-                              getSelectValue(p.status) === 'Pago' ? "text-amber-500 bg-amber-50" : "text-green-600 bg-green-50"
-                            )}
-                          >
-                            {getSelectValue(p.status) === 'Pago' ? <Clock size={16} /> : <CheckCircle2 size={16} />}
-                          </button>
-                        </div>
-                     </div>
-                   ))}
+                      );
+                    })}
+                   </div>
                 </div>
               </div>
             );
           }) : (
-            <div className="card py-10 flex flex-col items-center justify-center text-gray-400 gap-2 opacity-50">
-              <ShoppingBag size={40} />
-              <p className="font-bold">Nenhuma compra registrada.</p>
+            <div className="card py-16 flex flex-col items-center justify-center text-gray-300 gap-4 opacity-70 bg-white border-dashed">
+              <ShoppingBag size={48} className="text-gray-200" />
+              <div className="text-center">
+                <p className="font-bold text-gray-500">Nenhuma compra registrada</p>
+                <p className="text-xs text-gray-400">As vendas deste cliente aparecerão aqui.</p>
+              </div>
             </div>
           )}
         </div>
