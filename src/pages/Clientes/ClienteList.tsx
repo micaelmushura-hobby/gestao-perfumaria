@@ -4,7 +4,7 @@ import { Search, UserPlus, Phone, ChevronRight, Users } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente } from '../../types';
-import { formatPhone } from '../../utils/formatters';
+import { formatPhone, getErrorMessage } from '../../utils/formatters';
 
 export const ClienteList: React.FC = () => {
   const { getRows, loading } = useBaserow();
@@ -21,8 +21,9 @@ export const ClienteList: React.FC = () => {
         order_by: 'nome',
       });
       setClientes(data.results);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(getErrorMessage(err));
     }
   };
 
@@ -64,6 +65,7 @@ export const ClienteList: React.FC = () => {
             <Link
               key={cliente.id}
               to={`/clientes/${cliente.id}`}
+              state={{ cliente }}
               className="card flex items-center justify-between active:bg-gray-50 bg-white"
             >
               <div className="flex flex-col gap-1">

@@ -46,7 +46,8 @@ export function useBaserow() {
         results: normalizedResults
       };
     } catch (err: any) {
-      console.error(`BASEROW ERROR fetching rows from table ${tableId}:`, err.response?.data || err.message);
+      const errorMsg = getErrorMessage(err);
+      console.error(`BASEROW ERROR fetching rows from table ${tableId}:`, errorMsg);
       return { results: [], count: 0 } as BaserowResponse<T>;
     } finally {
       setLoading(false);
@@ -68,7 +69,8 @@ export function useBaserow() {
       const response = await api.post<T>(url, payload);
       return normalizeRow(response.data) as T;
     } catch (err: any) {
-      console.error(`BASEROW ERROR adding row to table ${tableId}:`, err.response?.data || err.message);
+      const errorMsg = getErrorMessage(err);
+      console.error(`BASEROW ERROR adding row to table ${tableId}:`, errorMsg);
       throw err;
     } finally {
       setLoading(false);
@@ -86,7 +88,8 @@ export function useBaserow() {
       const response = await api.patch<T>(url, payload);
       return normalizeRow(response.data) as T;
     } catch (err: any) {
-      console.error(`BASEROW ERROR updating row ${rowId} in table ${tableId}:`, err.response?.data || err.message);
+      const errorMsg = getErrorMessage(err);
+      console.error(`BASEROW ERROR updating row ${rowId} in table ${tableId}:`, errorMsg);
       throw err;
     } finally {
       setLoading(false);

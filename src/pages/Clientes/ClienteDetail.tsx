@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Edit2, Phone, Briefcase, History, TrendingUp, DollarSign, Wallet, ShoppingBag, Clock, CheckCircle2, MessageSquare } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
@@ -9,8 +9,10 @@ import { cn } from '../../lib/utils';
 
 export const ClienteDetail: React.FC = () => {
   const { id } = useParams();
+  const location = useLocation();
   const { getRows, updateRow, loading: baserowLoading } = useBaserow();
-  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [cliente, setCliente] = useState<Cliente | null>(location.state?.cliente || null);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,56 +36,56 @@ export const ClienteDetail: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
+    setErrorStatus(null);
     try {
-      const results = await Promise.allSettled([
-        getRows<Cliente>(TABLES.CLIENTES, {
+      const vParams = {
+        filters: JSON.stringify({
+          filter_type: 'AND',
+          filters: [{ field: 'cliente_id', type: 'equal', value: id }],
+        }),
+        order_by: '-criado_em'
+      };
+
+      const [vendasData, parcelasData] = await Promise.all([
+        getRows<Venda>(TABLES.VENDAS, vParams),
+        getRows<Parcela>(TABLES.PARCELAS, { order_by: 'vencimento' })
+      ]);
+
+      const vList = vendasData.results || [];
+      const vIds = vList.map(v => v.id);
+      const pList = (parcelasData.results || []).filter(p => vIds.includes(Number(p.venda_id)));
+      
+      setVendas(vList);
+      setParcelas(pList);
+
+      const totalVencido = pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela || 0), 0);
+
+      setStats({
+        totalGasto: vList.reduce((acc, v) => acc + Number(v.valor_venda || 0), 0),
+        totalPago: pList.filter(p => getSelectValue(p.status) === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela || 0), 0),
+        totalPendente: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela || 0), 0),
+        totalVencido: totalVencido,
+        lucroGerado: vList.reduce((acc, v) => acc + Number(v.lucro || 0), 0),
+        parcelasAbertas: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).length,
+        parcelasPagas: pList.filter(p => getSelectValue(p.status) === 'Pago').length,
+        parcelasVencidas: pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).length,
+      });
+
+      // Fetch client only if missing
+      if (!cliente) {
+        const cData = await getRows<Cliente>(TABLES.CLIENTES, {
           filters: JSON.stringify({
             filter_type: 'AND',
             filters: [{ field: 'id', type: 'equal', value: id }],
           }),
-        }),
-        getRows<Venda>(TABLES.VENDAS, {
-           filters: JSON.stringify({
-            filter_type: 'AND',
-            filters: [{ field: 'cliente_id', type: 'equal', value: id }],
-          }),
-          order_by: '-criado_em'
-        }),
-        getRows<Parcela>(TABLES.PARCELAS, {
-          order_by: 'vencimento'
-        })
-      ]);
-
-      const clienteData = results[0].status === 'fulfilled' ? results[0].value : { results: [], count: 0 };
-      const vendasData = results[1].status === 'fulfilled' ? results[1].value : { results: [], count: 0 };
-      const parcelasData = results[2].status === 'fulfilled' ? results[2].value : { results: [], count: 0 };
-
-      if (clienteData.results && clienteData.results.length > 0) {
-        const c = clienteData.results[0];
-        setCliente(c);
-
-        const vList = vendasData.results || [];
-        setVendas(vList);
-        
-        const vIds = vList.map(v => v.id);
-        const pList = (parcelasData.results || []).filter(p => vIds.includes(Number(p.venda_id)));
-        setParcelas(pList);
-
-        const totalVencido = pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0);
-
-        setStats({
-          totalGasto: vList.reduce((acc, v) => acc + Number(v.valor_venda), 0),
-          totalPago: pList.filter(p => getSelectValue(p.status) === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalPendente: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalVencido: totalVencido,
-          lucroGerado: vList.reduce((acc, v) => acc + Number(v.lucro), 0),
-          parcelasAbertas: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).length,
-          parcelasPagas: pList.filter(p => getSelectValue(p.status) === 'Pago').length,
-          parcelasVencidas: pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).length,
         });
+        if (cData.results && cData.results.length > 0) {
+          setCliente(cData.results[0]);
+        }
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error loading client details:', err);
+      setErrorStatus("Não foi possível carregar o histórico financeiro deste cliente.");
     } finally {
       setLoading(false);
     }
@@ -134,7 +136,7 @@ export const ClienteDetail: React.FC = () => {
       }
     });
 
-    message += `\n---\n\n*Resumo financeiro:*\n`;
+    message += `\n---\n\n*Resumo:*\n`;
     message += `Total comprado: ${formatCurrency(stats.totalGasto)}\n`;
     message += `Total pago: ${formatCurrency(stats.totalPago)}\n`;
     message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n`;
@@ -154,11 +156,24 @@ export const ClienteDetail: React.FC = () => {
     return <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{val}</span>;
   };
 
-  if (loading && !cliente) return <div className="h-full flex items-center justify-center py-20 text-gray-500 font-bold animate-pulse">Carregando histórico...</div>;
-  if (!cliente) return <div className="p-10 text-center">Cliente não encontrado.</div>;
+  if (loading && !cliente) return <div className="h-full flex items-center justify-center py-20 text-gray-500 font-bold animate-pulse text-center">Carregando dados...</div>;
+  if (!cliente) {
+    return (
+      <div className="p-10 flex flex-col items-center gap-4 text-center">
+        <ArrowLeft className="cursor-pointer text-gray-400" onClick={() => window.history.back()} />
+        <p className="text-gray-500 font-bold">{errorStatus || "Cliente não encontrado."}</p>
+        <button onClick={() => loadData()} className="btn-secondary text-sm">Tentar Novamente</button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 pb-20">
+      {errorStatus && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-xl text-xs font-bold text-center">
+          ⚠️ {errorStatus}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <Link to="/clientes" className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm text-gray-500 hover:bg-gray-50 transition-colors">
           <ArrowLeft size={20} />
