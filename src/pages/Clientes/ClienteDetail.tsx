@@ -4,7 +4,7 @@ import { ArrowLeft, Edit2, Phone, Briefcase, History, TrendingUp, DollarSign, Wa
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente, Venda, Parcela } from '../../types';
-import { formatCurrency, formatPhone, formatDate, isOverdue } from '../../utils/formatters';
+import { formatCurrency, formatPhone, formatDate, isOverdue, getSelectValue } from '../../utils/formatters';
 import { cn } from '../../lib/utils';
 
 export const ClienteDetail: React.FC = () => {
@@ -33,7 +33,7 @@ export const ClienteDetail: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [clienteData, vendasData, parcelasData] = await Promise.all([
+      const results = await Promise.allSettled([
         getRows<Cliente>(TABLES.CLIENTES, {
           filters: JSON.stringify({
             filter_type: 'AND',
@@ -50,13 +50,17 @@ export const ClienteDetail: React.FC = () => {
         getRows<Parcela>(TABLES.PARCELAS, {
            filters: JSON.stringify({
             filter_type: 'AND',
-            filters: [{ field: 'user_id', type: 'equal', value: '' }], // This is just a placeholder, actual filter happens in useBaserow for user_id
+            filters: [{ field: 'user_id', type: 'equal', value: '' }], 
           }),
           order_by: 'vencimento'
         })
       ]);
 
-      if (clienteData.results.length > 0) {
+      const clienteData = results[0].status === 'fulfilled' ? results[0].value : { results: [], count: 0 };
+      const vendasData = results[1].status === 'fulfilled' ? results[1].value : { results: [], count: 0 };
+      const parcelasData = results[2].status === 'fulfilled' ? results[2].value : { results: [], count: 0 };
+
+      if (clienteData.results && clienteData.results.length > 0) {
         const c = clienteData.results[0];
         setCliente(c);
 
@@ -69,12 +73,12 @@ export const ClienteDetail: React.FC = () => {
 
         setStats({
           totalGasto: vList.reduce((acc, v) => acc + Number(v.valor_venda), 0),
-          totalPago: pList.filter(p => p.status === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalPendente: pList.filter(p => p.status !== 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalPago: pList.filter(p => getSelectValue(p.status) === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalPendente: pList.filter(p => getSelectValue(p.status) !== 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
           lucroGerado: vList.reduce((acc, v) => acc + Number(v.lucro), 0),
-          parcelasAbertas: pList.filter(p => p.status !== 'Pago' && !isOverdue(p.vencimento, p.status)).length,
-          parcelasPagas: pList.filter(p => p.status === 'Pago').length,
-          parcelasVencidas: pList.filter(p => isOverdue(p.vencimento, p.status)).length,
+          parcelasAbertas: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).length,
+          parcelasPagas: pList.filter(p => getSelectValue(p.status) === 'Pago').length,
+          parcelasVencidas: pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).length,
         });
       }
     } catch (err) {
@@ -85,7 +89,8 @@ export const ClienteDetail: React.FC = () => {
   };
 
   const handleToggleStatus = async (parcela: Parcela) => {
-    const newStatus = parcela.status === 'Pago' ? 'Em Aberto' : 'Pago';
+    const currentStatus = getSelectValue(parcela.status);
+    const newStatus = currentStatus === 'Pago' ? 'Em Aberto' : 'Pago';
     const pago_em = newStatus === 'Pago' ? new Date().toISOString() : null;
     
     try {
@@ -93,9 +98,11 @@ export const ClienteDetail: React.FC = () => {
         status: newStatus,
         pago_em: pago_em
       });
-      loadData();
-    } catch (err) {
+      await loadData();
+    } catch (err: any) {
       console.error(err);
+      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao atualizar status';
+      alert(message);
     }
   };
 
@@ -112,8 +119,9 @@ export const ClienteDetail: React.FC = () => {
       
       vendaParcelas.forEach(p => {
         let icon = '';
-        if (p.status === 'Pago') icon = ' ✅';
-        else if (isOverdue(p.vencimento, p.status)) icon = ' ⚠️';
+        const statusVal = getSelectValue(p.status);
+        if (statusVal === 'Pago') icon = ' ✅';
+        else if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
         else icon = ' ⏳';
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
@@ -127,12 +135,13 @@ export const ClienteDetail: React.FC = () => {
     return encodeURIComponent(message);
   };
 
-  const StatusBadge = ({ status, date }: { status: string; date: string }) => {
-    const overdue = isOverdue(date, status);
+  const StatusBadge = ({ status, date }: { status: any; date: string }) => {
+    const val = getSelectValue(status);
+    const overdue = isOverdue(date, val);
     
-    if (status === 'Pago') return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Pago</span>;
+    if (val === 'Pago') return <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Pago</span>;
     if (overdue) return <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">⚠️ Vencido</span>;
-    return <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{status}</span>;
+    return <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">{val}</span>;
   };
 
   if (loading && !cliente) return <div className="h-full flex items-center justify-center py-20 text-gray-500 font-bold animate-pulse">Carregando histórico...</div>;
@@ -226,7 +235,7 @@ export const ClienteDetail: React.FC = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col">
                       <span className="font-bold text-lg text-gray-800 leading-tight">{venda.produto}</span>
-                      <span className="text-xs font-bold text-brand-accent mt-1">{venda.marca}</span>
+                      <span className="text-xs font-bold text-brand-accent mt-1">{getSelectValue(venda.marca)}</span>
                       <span className="text-[10px] text-gray-400 uppercase mt-1">{formatDate(venda.criado_em)}</span>
                     </div>
                     <div className="flex flex-col items-end">
@@ -251,7 +260,7 @@ export const ClienteDetail: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold",
-                            p.status === 'Pago' ? "bg-green-100 text-green-600" : "bg-brand-accent/10 text-brand-accent"
+                            getSelectValue(p.status) === 'Pago' ? "bg-green-100 text-green-600" : "bg-brand-accent/10 text-brand-accent"
                           )}>
                             {p.numero_parcela}
                           </div>
@@ -266,10 +275,10 @@ export const ClienteDetail: React.FC = () => {
                             onClick={() => handleToggleStatus(p)}
                             className={cn(
                               "p-2 rounded-lg transition-colors",
-                              p.status === 'Pago' ? "text-amber-500 bg-amber-50" : "text-green-600 bg-green-50"
+                              getSelectValue(p.status) === 'Pago' ? "text-amber-500 bg-amber-50" : "text-green-600 bg-green-50"
                             )}
                           >
-                            {p.status === 'Pago' ? <Clock size={16} /> : <CheckCircle2 size={16} />}
+                            {getSelectValue(p.status) === 'Pago' ? <Clock size={16} /> : <CheckCircle2 size={16} />}
                           </button>
                         </div>
                      </div>

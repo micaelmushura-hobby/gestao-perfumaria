@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useBaserow } from '../hooks/useBaserow';
 import { TABLES } from '../services/api';
 import { Parcela, Cliente, Venda } from '../types';
-import { formatCurrency, formatDate, isOverdue } from '../utils/formatters';
+import { formatCurrency, formatDate, isOverdue, getSelectValue } from '../utils/formatters';
 import { cn } from '../lib/utils';
 
 export const Parcelas: React.FC = () => {
@@ -47,42 +47,48 @@ export const Parcelas: React.FC = () => {
           ? { ...p, status: newStatus, pago_em: newStatus === 'Pago' ? new Date().toISOString() : null } 
           : p
       ));
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao atualizar status';
+      alert(message);
     }
   };
 
   const filteredParcelas = parcelas.filter(p => {
     const matchesSearch = p.cliente_nome.toLowerCase().includes(searchTerm.toLowerCase());
-    const overdue = isOverdue(p.vencimento, p.status);
+    const statusVal = getSelectValue(p.status);
+    const overdue = isOverdue(p.vencimento, statusVal);
     
-    if (filter === 'Pagas') return matchesSearch && p.status === 'Pago';
-    if (filter === 'Em Aberto') return matchesSearch && p.status !== 'Pago' && !overdue;
+    if (filter === 'Pagas') return matchesSearch && statusVal === 'Pago';
+    if (filter === 'Em Aberto') return matchesSearch && statusVal !== 'Pago' && !overdue;
     if (filter === 'Vencidas') return matchesSearch && overdue;
-    if (filter === 'Pendentes') return matchesSearch && p.status !== 'Pago';
+    if (filter === 'Pendentes') return matchesSearch && statusVal !== 'Pago';
     return matchesSearch;
   });
 
   const sendWhatsAppCollection = async (parcela: Parcela) => {
     try {
       // Find the sale to get products and client info
-      const vendaResp = await getRows<Venda>(TABLES.VENDAS, {
-        filters: JSON.stringify({
-          filter_type: 'AND',
-          filters: [{ field: 'id', type: 'equal', value: parcela.venda_id.toString() }]
+      const results = await Promise.allSettled([
+        getRows<Venda>(TABLES.VENDAS, {
+          filters: JSON.stringify({
+            filter_type: 'AND',
+            filters: [{ field: 'id', type: 'equal', value: parcela.venda_id.toString() }]
+          })
+        }),
+        getRows<Parcela>(TABLES.PARCELAS, {
+          filters: JSON.stringify({
+            filter_type: 'AND',
+            filters: [{ field: 'venda_id', type: 'equal', value: parcela.venda_id.toString() }]
+          })
         })
-      });
+      ]);
       
+      const vendaResp = results[0].status === 'fulfilled' ? results[0].value : { results: [], count: 0 };
+      const resp = results[1].status === 'fulfilled' ? results[1].value : { results: [], count: 0 };
+
       if (vendaResp.results.length === 0) return;
       const venda = vendaResp.results[0];
-
-      // Find all installments for THIS SALE
-      const resp = await getRows<Parcela>(TABLES.PARCELAS, {
-        filters: JSON.stringify({
-          filter_type: 'AND',
-          filters: [{ field: 'venda_id', type: 'equal', value: parcela.venda_id.toString() }]
-        })
-      });
       
       const allP = resp.results.sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
       
@@ -102,8 +108,9 @@ export const Parcelas: React.FC = () => {
       
       allP.forEach(p => {
         let icon = '';
-        if (p.status === 'Pago') icon = ' ✅';
-        else if (isOverdue(p.vencimento, p.status)) icon = ' ⚠️';
+        const sVal = getSelectValue(p.status);
+        if (sVal === 'Pago') icon = ' ✅';
+        else if (isOverdue(p.vencimento, sVal)) icon = ' ⚠️';
         else icon = ' ⏳';
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
@@ -158,8 +165,9 @@ export const Parcelas: React.FC = () => {
           ))
         ) : filteredParcelas.length > 0 ? (
           filteredParcelas.map((parcela) => {
-            const isPaid = parcela.status === 'Pago';
-            const overdue = isOverdue(parcela.vencimento, parcela.status);
+            const statusVal = getSelectValue(parcela.status);
+            const isPaid = statusVal === 'Pago';
+            const overdue = isOverdue(parcela.vencimento, statusVal);
             
             return (
               <div key={parcela.id} className={cn(

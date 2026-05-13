@@ -31,6 +31,13 @@ export const parseDecimal = (value: string): number => {
   return parseFloat(normalized) || 0;
 };
 
+export const getSelectValue = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && 'value' in value) return value.value;
+  return String(value);
+};
+
 export const isOverdue = (dueDate: string, status: string) => {
   if (status === 'Pago') return false;
   const today = startOfDay(new Date());

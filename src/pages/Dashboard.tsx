@@ -12,7 +12,7 @@ import { Link } from 'react-router-dom';
 import { useBaserow } from '../hooks/useBaserow';
 import { TABLES } from '../services/api';
 import { Venda, Parcela } from '../types';
-import { formatCurrency, isOverdue } from '../utils/formatters';
+import { formatCurrency, isOverdue, getSelectValue } from '../utils/formatters';
 import { cn } from '../lib/utils';
 
 interface DashboardStats {
@@ -45,10 +45,13 @@ export const Dashboard: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vendasData, parcelasData] = await Promise.all([
+        const results = await Promise.allSettled([
           getRows<Venda>(TABLES.VENDAS),
           getRows<Parcela>(TABLES.PARCELAS),
         ]);
+
+        const vendasData = results[0].status === 'fulfilled' ? results[0].value : { results: [], count: 0 };
+        const parcelasData = results[1].status === 'fulfilled' ? results[1].value : { results: [], count: 0 };
 
         const allVendas = vendasData.results || [];
         const allParcelas = parcelasData.results || [];
@@ -59,20 +62,20 @@ export const Dashboard: React.FC = () => {
 
         if (filter !== 'Todas') {
           if (filter === 'Pagas') {
-            filteredParcelas = allParcelas.filter(p => p.status === 'Pago');
+            filteredParcelas = allParcelas.filter(p => getSelectValue(p.status) === 'Pago');
             // A sale is "Paga" if all its installments are "Pago"
-            const vIdsWithOpenParcelas = new Set(allParcelas.filter(p => p.status !== 'Pago').map(p => p.venda_id));
+            const vIdsWithOpenParcelas = new Set(allParcelas.filter(p => getSelectValue(p.status) !== 'Pago').map(p => p.venda_id));
             filteredVendas = allVendas.filter(v => !vIdsWithOpenParcelas.has(v.id));
           } else if (filter === 'Em Aberto') {
-            filteredParcelas = allParcelas.filter(p => p.status === 'Em Aberto' || p.status === 'Pendente');
+            filteredParcelas = allParcelas.filter(p => getSelectValue(p.status) === 'Em Aberto' || getSelectValue(p.status) === 'Pendente');
             const vIdsWithOpen = new Set(filteredParcelas.map(p => p.venda_id));
             filteredVendas = allVendas.filter(v => vIdsWithOpen.has(v.id));
           } else if (filter === 'Vencidas') {
-            filteredParcelas = allParcelas.filter(p => isOverdue(p.vencimento, p.status));
+            filteredParcelas = allParcelas.filter(p => isOverdue(p.vencimento, getSelectValue(p.status)));
             const vIdsWithVencidas = new Set(filteredParcelas.map(p => p.venda_id));
             filteredVendas = allVendas.filter(v => vIdsWithVencidas.has(v.id));
           } else if (filter === 'Pendentes') {
-            filteredParcelas = allParcelas.filter(p => p.status !== 'Pago');
+            filteredParcelas = allParcelas.filter(p => getSelectValue(p.status) !== 'Pago');
             const vIdsWithPendentes = new Set(filteredParcelas.map(p => p.venda_id));
             filteredVendas = allVendas.filter(v => vIdsWithPendentes.has(v.id));
           }
@@ -84,11 +87,11 @@ export const Dashboard: React.FC = () => {
         const newStats: DashboardStats = {
           faturamentoTotal: filteredVendas.reduce((acc, v) => acc + Number(v.valor_venda), 0),
           lucroTotal: filteredVendas.reduce((acc, v) => acc + Number(v.lucro), 0),
-          totalRecebido: filteredParcelas.filter(p => p.status === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalPendente: filteredParcelas.filter(p => p.status !== 'Pago' && !isOverdue(p.vencimento, p.status)).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          parcelasVencidas: filteredParcelas.filter(p => isOverdue(p.vencimento, p.status)).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          parcelasAbertas: filteredParcelas.filter(p => p.status === 'Em Aberto' || p.status === 'Pendente').length,
-          parcelasPagas: filteredParcelas.filter(p => p.status === 'Pago').length,
+          totalRecebido: filteredParcelas.filter(p => getSelectValue(p.status) === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalPendente: filteredParcelas.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          parcelasVencidas: filteredParcelas.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          parcelasAbertas: filteredParcelas.filter(p => getSelectValue(p.status) === 'Em Aberto' || getSelectValue(p.status) === 'Pendente').length,
+          parcelasPagas: filteredParcelas.filter(p => getSelectValue(p.status) === 'Pago').length,
           vendasMes: filteredVendas.filter(v => {
             const date = new Date(v.criado_em);
             return date.getMonth() === currentMonth && date.getFullYear() === currentYear;

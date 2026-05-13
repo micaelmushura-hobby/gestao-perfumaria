@@ -4,7 +4,7 @@ import { ShoppingBag, Plus, Phone, Calendar, Briefcase, Search, Edit2 } from 'lu
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Venda } from '../../types';
-import { formatCurrency, formatDate } from '../../utils/formatters';
+import { formatCurrency, formatDate, getSelectValue } from '../../utils/formatters';
 
 export const SaleList: React.FC = () => {
   const { getRows, loading } = useBaserow();
@@ -31,7 +31,8 @@ export const SaleList: React.FC = () => {
     v.produto.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const StatusBadge = ({ status }: { status: string }) => {
+  const StatusBadge = ({ status }: { status: any }) => {
+    const val = getSelectValue(status);
     const colors: any = {
       'Pago': 'bg-green-100 text-green-700',
       'Pendente': 'bg-amber-100 text-amber-700',
@@ -39,8 +40,8 @@ export const SaleList: React.FC = () => {
       'Parcial': 'bg-purple-100 text-purple-700',
     };
     return (
-      <span className={`${colors[status] || 'bg-gray-100'} px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider`}>
-        {status}
+      <span className={`${colors[val] || 'bg-gray-100'} px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider`}>
+        {val}
       </span>
     );
   };
@@ -81,7 +82,7 @@ export const SaleList: React.FC = () => {
                   <h3 className="font-bold text-lg leading-tight">{venda.produto}</h3>
                   <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Briefcase size={14} />
-                    <span>{venda.marca}</span>
+                    <span>{getSelectValue(venda.marca)}</span>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">

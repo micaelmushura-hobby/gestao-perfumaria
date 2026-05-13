@@ -5,7 +5,7 @@ import { addMonths, format, parseISO } from 'date-fns';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente, Venda, Parcela } from '../../types';
-import { parseDecimal } from '../../utils/formatters';
+import { parseDecimal, getSelectValue } from '../../utils/formatters';
 
 export const SaleForm: React.FC = () => {
   const { id } = useParams();
@@ -83,17 +83,17 @@ export const SaleForm: React.FC = () => {
           filters: [{ field: 'id', type: 'equal', value: id }],
         }),
       });
-      if (resp.results.length > 0) {
+      if (resp && resp.results && resp.results.length > 0) {
         const v = resp.results[0];
         setFormData({
-          cliente_id: v.cliente_id.toString(),
-          produto: v.produto,
-          marca: v.marca,
-          custo: v.custo.toString().replace('.', ','),
-          valor_venda: v.valor_venda.toString().replace('.', ','),
-          qtd_parcelas: v.qtd_parcelas.toString(),
-          data_primeira_parcela: format(parseISO(v.criado_em), 'yyyy-MM-dd'), 
-          status: v.status,
+          cliente_id: (v.cliente_id || '').toString(),
+          produto: v.produto || '',
+          marca: getSelectValue(v.marca),
+          custo: (v.custo || 0).toString().replace('.', ','),
+          valor_venda: (v.valor_venda || 0).toString().replace('.', ','),
+          qtd_parcelas: (v.qtd_parcelas || 1).toString(),
+          data_primeira_parcela: v.criado_em ? format(parseISO(v.criado_em), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'), 
+          status: getSelectValue(v.status),
         });
 
         // Load existing installments
@@ -103,13 +103,16 @@ export const SaleForm: React.FC = () => {
             filters: [{ field: 'venda_id', type: 'equal', value: id }],
           })
         });
-        setInstallments(pResp.results.map(p => ({
-          ...p,
-          valor_parcela: p.valor_parcela.toString().replace('.', ',')
-        })));
+        if (pResp && pResp.results) {
+          setInstallments(pResp.results.map(p => ({
+            ...p,
+            valor_parcela: (p.valor_parcela || 0).toString().replace('.', ','),
+            status: getSelectValue(p.status)
+          })));
+        }
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error loading sale:', err);
     }
   };
 
@@ -121,11 +124,18 @@ export const SaleForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+
     const cost = parseDecimal(formData.custo);
     const saleValue = parseDecimal(formData.valor_venda);
     const profit = saleValue - cost;
     const installmentsCount = parseInt(formData.qtd_parcelas);
     
+    if (!formData.cliente_id) {
+      alert('Por favor, selecione um cliente.');
+      return;
+    }
+
     const selectedCliente = clientes.find(c => c.id.toString() === formData.cliente_id);
 
     try {
@@ -148,7 +158,7 @@ export const SaleForm: React.FC = () => {
             await updateRow(TABLES.PARCELAS, p.id, {
               valor_parcela: parseDecimal(p.valor_parcela),
               vencimento: p.vencimento,
-              status: p.status,
+              status: getSelectValue(p.status),
             });
           }
         }
@@ -169,22 +179,23 @@ export const SaleForm: React.FC = () => {
 
         if (newVenda) {
           // Save generated installments
-          for (const p of installments) {
-            await addRow(TABLES.PARCELAS, {
-              venda_id: newVenda.id,
-              cliente_nome: selectedCliente?.nome || '',
-              numero_parcela: p.numero_parcela,
-              valor_parcela: parseDecimal(p.valor_parcela),
-              vencimento: p.vencimento,
-              status: p.status,
-              pago_em: p.status === 'Pago' ? format(new Date(), 'yyyy-MM-dd') : null,
-            });
-          }
+          const pPromises = installments.map(p => addRow(TABLES.PARCELAS, {
+            venda_id: newVenda.id,
+            cliente_nome: selectedCliente?.nome || '',
+            numero_parcela: p.numero_parcela,
+            valor_parcela: parseDecimal(p.valor_parcela),
+            vencimento: p.vencimento,
+            status: getSelectValue(p.status),
+            pago_em: getSelectValue(p.status) === 'Pago' ? format(new Date(), 'yyyy-MM-dd') : null,
+          }));
+          await Promise.allSettled(pPromises);
         }
         navigate('/vendas');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error saving sale:', err);
+      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao salvar venda';
+      alert('Erro ao salvar: ' + (typeof message === 'object' ? JSON.stringify(message) : message));
     }
   };
 

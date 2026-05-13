@@ -2,30 +2,56 @@ import { useState, useCallback } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BaserowResponse } from '../types';
+import { getSelectValue } from '../utils/formatters';
 
 export function useBaserow() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  const normalizeRow = useCallback((row: any) => {
+    return {
+      ...row,
+      marca: getSelectValue(row.marca),
+      status: getSelectValue(row.status),
+      custo: Number(row.custo || 0),
+      valor_venda: Number(row.valor_venda || 0),
+      lucro: Number(row.lucro || 0),
+      qtd_parcelas: Number(row.qtd_parcelas || 0),
+      cliente_id: Number(row.cliente_id || 0),
+      venda_id: Number(row.venda_id || 0),
+      user_id: Number(row.user_id || 0),
+      valor_parcela: Number(row.valor_parcela || 0),
+      numero_parcela: Number(row.numero_parcela || 0),
+    };
+  }, []);
+
   const getRows = useCallback(async <T,>(tableId: string | undefined, params: any = {}) => {
-    if (!tableId || !user) return { results: [], count: 0 } as BaserowResponse<T>;
+    const userId = Number(user?.id);
+    if (!tableId || !userId || isNaN(userId)) {
+      return { results: [], count: 0 } as BaserowResponse<T>;
+    }
     setLoading(true);
     try {
       const response = await api.get<BaserowResponse<T>>(`database/rows/table/${tableId}/`, {
         params: {
           ...params,
           user_field_names: true,
-          filter__field_user_id__equal: Number(user.id),
+          filter__field_user_id__equal: userId,
         },
       });
-      return response.data;
+      
+      const normalizedResults = (response.data.results || []).map(normalizeRow) as T[];
+      return {
+        ...response.data,
+        results: normalizedResults
+      };
     } catch (err: any) {
       console.error(`BASEROW ERROR fetching rows from table ${tableId}:`, err.response?.data || err.message);
-      throw err;
+      return { results: [], count: 0 } as BaserowResponse<T>;
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, normalizeRow]);
 
   const addRow = useCallback(async <T,>(tableId: string | undefined, data: any) => {
     if (!tableId || !user) return;
@@ -40,7 +66,7 @@ export function useBaserow() {
     
     try {
       const response = await api.post<T>(url, payload);
-      return response.data;
+      return normalizeRow(response.data) as T;
     } catch (err: any) {
       console.error(`BASEROW ERROR adding row to table ${tableId}:`, err.response?.data || err.message);
       throw err;
@@ -58,7 +84,7 @@ export function useBaserow() {
     
     try {
       const response = await api.patch<T>(url, payload);
-      return response.data;
+      return normalizeRow(response.data) as T;
     } catch (err: any) {
       console.error(`BASEROW ERROR updating row ${rowId} in table ${tableId}:`, err.response?.data || err.message);
       throw err;
