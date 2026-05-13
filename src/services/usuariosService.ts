@@ -3,37 +3,46 @@ import { Usuario, BaserowResponse } from '../types';
 
 export const usuariosService = {
   getByEmailAndSenha: async (email: string, senha: string) => {
-    const response = await api.get<BaserowResponse<Usuario>>(`database/rows/table/${TABLES.USUARIOS}/`, {
-      params: {
-        user_field_names: true,
-        filters: JSON.stringify({
-          filter_type: 'AND',
-          filters: [
-            { field: 'email', type: 'equal', value: email },
-            { field: 'senha', type: 'equal', value: senha },
-          ],
-        }),
-      },
-    });
-    return response.data;
+    try {
+      const response = await api.get<BaserowResponse<Usuario>>(`database/rows/table/${TABLES.USUARIOS}/`, {
+        params: {
+          user_field_names: true,
+          filter__field_email__equal: email,
+          filter__field_senha__equal: senha,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('BASEROW ERROR (getByEmailAndSenha):', error.response?.data || error.message);
+      throw error;
+    }
   },
   getByEmail: async (email: string) => {
-    const response = await api.get<BaserowResponse<Usuario>>(`database/rows/table/${TABLES.USUARIOS}/`, {
-      params: {
-        user_field_names: true,
-        filters: JSON.stringify({
-          filter_type: 'AND',
-          filters: [{ field: 'email', type: 'equal', value: email }],
-        }),
-      },
-    });
-    return response.data;
+    try {
+      const response = await api.get<BaserowResponse<Usuario>>(`database/rows/table/${TABLES.USUARIOS}/`, {
+        params: {
+          user_field_names: true,
+          filter__field_email__equal: email,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('BASEROW ERROR (getByEmail):', error.response?.data || error.message);
+      throw error;
+    }
   },
   create: async (data: any) => {
-    const response = await api.post<Usuario>(`database/rows/table/${TABLES.USUARIOS}/?user_field_names=true`, {
-      ...data,
-      criado_em: new Date().toISOString(),
-    });
-    return response.data;
+    const url = `database/rows/table/${TABLES.USUARIOS}/?user_field_names=true`;
+    // Filter out read-only fields
+    const { id, criado_em, whatsapp_link, ...payload } = data;
+    console.log('POST URL:', url);
+    console.log('POST PAYLOAD:', payload);
+    try {
+      const response = await api.post<Usuario>(url, payload);
+      return response.data;
+    } catch (error: any) {
+      console.error('BASEROW ERROR (create):', error.response?.data || error.message);
+      throw error;
+    }
   },
 };
