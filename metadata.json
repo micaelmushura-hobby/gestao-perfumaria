@@ -1,0 +1,8 @@
+{
+  "name": "Gestão Perfumaria",
+  "description": "Sistema de gestão financeira e CRM mobile-first para revendedores de perfumes. Controle de clientes, vendas, parcelas e cobranças via WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
