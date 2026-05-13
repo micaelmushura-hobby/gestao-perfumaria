@@ -5,7 +5,7 @@ import { addMonths, format, parseISO } from 'date-fns';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente, Venda, Parcela } from '../../types';
-import { parseDecimal, getSelectValue } from '../../utils/formatters';
+import { parseDecimal, getSelectValue, getErrorMessage } from '../../utils/formatters';
 
 export const SaleForm: React.FC = () => {
   const { id } = useParams();
@@ -194,8 +194,7 @@ export const SaleForm: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error saving sale:', err);
-      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao salvar venda';
-      alert('Erro ao salvar: ' + (typeof message === 'object' ? JSON.stringify(message) : message));
+      alert(getErrorMessage(err));
     }
   };
 

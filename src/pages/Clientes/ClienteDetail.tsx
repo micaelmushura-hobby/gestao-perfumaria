@@ -4,7 +4,7 @@ import { ArrowLeft, Edit2, Phone, Briefcase, History, TrendingUp, DollarSign, Wa
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente, Venda, Parcela } from '../../types';
-import { formatCurrency, formatPhone, formatDate, isOverdue, getSelectValue } from '../../utils/formatters';
+import { formatCurrency, formatPhone, formatDate, isOverdue, getSelectValue, getErrorMessage } from '../../utils/formatters';
 import { cn } from '../../lib/utils';
 
 export const ClienteDetail: React.FC = () => {
@@ -99,8 +99,7 @@ export const ClienteDetail: React.FC = () => {
       await loadData();
     } catch (err: any) {
       console.error(err);
-      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao atualizar status';
-      alert(message);
+      alert(getErrorMessage(err));
     }
   };
 

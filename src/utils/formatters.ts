@@ -38,6 +38,32 @@ export const getSelectValue = (value: any): string => {
   return String(value);
 };
 
+export function getErrorMessage(error: any): string {
+  if (!error) return 'Erro desconhecido';
+
+  if (typeof error === 'string') return error;
+
+  if (error.response?.data) {
+    const data = error.response.data;
+
+    if (typeof data === 'string') return data;
+
+    if (data.detail) {
+      if (typeof data.detail === 'string') return data.detail;
+      return JSON.stringify(data.detail);
+    }
+
+    if (data.message) return data.message;
+    if (data.error) return data.error;
+
+    return JSON.stringify(data);
+  }
+
+  if (error.message) return error.message;
+
+  return JSON.stringify(error);
+}
+
 export const isOverdue = (dueDate: string, status: string) => {
   if (status === 'Pago') return false;
   const today = startOfDay(new Date());

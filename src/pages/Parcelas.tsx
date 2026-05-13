@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useBaserow } from '../hooks/useBaserow';
 import { TABLES } from '../services/api';
 import { Parcela, Cliente, Venda } from '../types';
-import { formatCurrency, formatDate, isOverdue, getSelectValue } from '../utils/formatters';
+import { formatCurrency, formatDate, isOverdue, getSelectValue, getErrorMessage } from '../utils/formatters';
 import { cn } from '../lib/utils';
 
 export const Parcelas: React.FC = () => {
@@ -35,22 +35,24 @@ export const Parcelas: React.FC = () => {
   };
 
   const handleStatusChange = async (parcela: Parcela, newStatus: 'Pago' | 'Em Aberto') => {
+    const isPaying = newStatus === 'Pago';
+    const pago_em = isPaying ? new Date().toISOString().split('T')[0] : null;
+
     try {
       await updateRow(TABLES.PARCELAS, parcela.id, {
         status: newStatus,
-        pago_em: newStatus === 'Pago' ? new Date().toISOString() : null,
+        pago_em: pago_em,
       });
       
       // Update local state
       setParcelas(prev => prev.map(p => 
         p.id === parcela.id 
-          ? { ...p, status: newStatus, pago_em: newStatus === 'Pago' ? new Date().toISOString() : null } 
+          ? { ...p, status: newStatus, pago_em: pago_em } 
           : p
       ));
     } catch (err: any) {
       console.error(err);
-      const message = err.response?.data?.detail || err.response?.data?.message || err.message || 'Erro ao atualizar status';
-      alert(message);
+      alert(getErrorMessage(err));
     }
   };
 
