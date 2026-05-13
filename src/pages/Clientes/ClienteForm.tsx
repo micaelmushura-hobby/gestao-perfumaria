@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Trash2 } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente } from '../../types';
+import { getErrorMessage } from '../../utils/formatters';
 
 export const ClienteForm: React.FC = () => {
   const { id } = useParams();
@@ -37,8 +38,9 @@ export const ClienteForm: React.FC = () => {
           observacao: c.observacao,
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(getErrorMessage(err));
     }
   };
 
@@ -51,8 +53,9 @@ export const ClienteForm: React.FC = () => {
         await addRow(TABLES.CLIENTES, formData);
       }
       navigate('/clientes');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(getErrorMessage(err));
     }
   };
 
@@ -62,8 +65,9 @@ export const ClienteForm: React.FC = () => {
       try {
         await deleteRow(TABLES.CLIENTES, parseInt(id));
         navigate('/clientes');
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        alert(getErrorMessage(err));
       }
     }
   };

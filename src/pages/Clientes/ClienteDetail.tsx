@@ -19,6 +19,7 @@ export const ClienteDetail: React.FC = () => {
     totalGasto: 0,
     totalPago: 0,
     totalPendente: 0,
+    totalVencido: 0,
     lucroGerado: 0,
     parcelasAbertas: 0,
     parcelasPagas: 0,
@@ -68,10 +69,13 @@ export const ClienteDetail: React.FC = () => {
         const pList = (parcelasData.results || []).filter(p => vIds.includes(Number(p.venda_id)));
         setParcelas(pList);
 
+        const totalVencido = pList.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0);
+
         setStats({
           totalGasto: vList.reduce((acc, v) => acc + Number(v.valor_venda), 0),
           totalPago: pList.filter(p => getSelectValue(p.status) === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalPendente: pList.filter(p => getSelectValue(p.status) !== 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalPendente: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalVencido: totalVencido,
           lucroGerado: vList.reduce((acc, v) => acc + Number(v.lucro), 0),
           parcelasAbertas: pList.filter(p => getSelectValue(p.status) !== 'Pago' && !isOverdue(p.vencimento, getSelectValue(p.status))).length,
           parcelasPagas: pList.filter(p => getSelectValue(p.status) === 'Pago').length,
@@ -111,8 +115,10 @@ export const ClienteDetail: React.FC = () => {
     vendas.forEach((venda, idx) => {
       const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
       
-      message += `*${venda.produto}* = ${formatCurrency(venda.valor_venda)}\n`;
-      message += `Total 🟰 ${formatCurrency(venda.valor_venda)}\n\n`;
+      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
+
+      message += `*${venda.produto}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
+      message += `Total 🟰 ${formatMsgCurrency(venda.valor_venda)}\n\n`;
       
       vendaParcelas.forEach(p => {
         let icon = '';
@@ -120,7 +126,7 @@ export const ClienteDetail: React.FC = () => {
         if (statusVal === 'Pago') icon = ' ✅';
         else if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
 
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
       });
 
       if (idx < vendas.length - 1) {
@@ -128,10 +134,11 @@ export const ClienteDetail: React.FC = () => {
       }
     });
 
-    message += `\n---\n\n*Resumo:*\n`;
+    message += `\n---\n\n*Resumo financeiro:*\n`;
     message += `Total comprado: ${formatCurrency(stats.totalGasto)}\n`;
     message += `Total pago: ${formatCurrency(stats.totalPago)}\n`;
-    message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n\n`;
+    message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n`;
+    message += `Total vencido: ${formatCurrency(stats.totalVencido)}\n\n`;
     message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
     message += `Qualquer dúvida, fico à disposição.`;
 
@@ -240,8 +247,8 @@ export const ClienteDetail: React.FC = () => {
         </div>
         <div className="card col-span-2 flex justify-between items-center p-3 bg-red-50 border-red-100">
           <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Parcelas Vencidas</span>
-            <span className="text-lg font-bold text-red-700">{formatCurrency(stats.parcelasVencidas > 0 ? parcelas.filter(p => isOverdue(p.vencimento, getSelectValue(p.status))).reduce((acc, p) => acc + Number(p.valor_parcela), 0) : 0)}</span>
+            <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Valor Vencido</span>
+            <span className="text-lg font-bold text-red-700">{formatCurrency(stats.totalVencido)}</span>
           </div>
           <div className="bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-bold">
             {stats.parcelasVencidas} ⚠️
