@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { BaserowResponse } from '../types';
-import { getSelectValue } from '../utils/formatters';
+import { getSelectValue, getErrorMessage } from '../utils/formatters';
 
 export function useBaserow() {
   const { user } = useAuth();

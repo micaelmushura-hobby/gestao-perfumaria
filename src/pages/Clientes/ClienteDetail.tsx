@@ -109,7 +109,7 @@ export const ClienteDetail: React.FC = () => {
     }
   };
 
-  const generateWhatsAppMessage = () => {
+  const generateDetailedExtract = () => {
     if (!cliente) return '';
 
     let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo da sua compra:\n\n`;
@@ -119,8 +119,17 @@ export const ClienteDetail: React.FC = () => {
       
       const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
 
-      message += `*${venda.produto}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
-      message += `Total 🟰 ${formatMsgCurrency(venda.valor_venda)}\n\n`;
+      // Parse products if saved in multiple format
+      const productLines = (venda.produto || '').split('\n');
+      if (productLines.length > 1) {
+        productLines.forEach(line => {
+          message += `*${line}*\n`;
+        });
+      } else {
+        message += `*${venda.produto}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
+      }
+      
+      message += `Total: ${formatMsgCurrency(venda.valor_venda)}\n\n`;
       
       vendaParcelas.forEach(p => {
         let icon = '';
@@ -143,6 +152,51 @@ export const ClienteDetail: React.FC = () => {
     message += `Total vencido: ${formatCurrency(stats.totalVencido)}\n\n`;
     message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
     message += `Qualquer dúvida, fico à disposição.`;
+
+    return encodeURIComponent(message);
+  };
+
+  const generateOpenExtract = () => {
+    if (!cliente) return '';
+
+    let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo dos valores em aberto:\n\n`;
+    
+    let hasOpen = false;
+    vendas.forEach((venda, idx) => {
+      const openParcelas = parcelas
+        .filter(p => Number(p.venda_id) === venda.id)
+        .filter(p => getSelectValue(p.status) !== 'Pago')
+        .sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
+      
+      if (openParcelas.length === 0) return;
+      hasOpen = true;
+
+      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
+
+      message += `*${venda.produto.split('\n')[0]}*\n`;
+      
+      openParcelas.forEach(p => {
+        let icon = '';
+        const statusVal = getSelectValue(p.status);
+        if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
+
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
+      });
+
+      if (idx < vendas.length - 1) {
+        message += `\n<<<<<<<<<<<<<<<<<<\n\n`;
+      }
+    });
+
+    if (!hasOpen) {
+      message = `Olá, *${cliente.nome}*! Tudo bem?\n\nVocê não possui parcelas em aberto no momento. ✅`;
+    } else {
+      message += `\n---\n\n*Resumo em aberto:*\n`;
+      message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n`;
+      message += `Total vencido: ${formatCurrency(stats.totalVencido)}\n\n`;
+      message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
+      message += `Qualquer dúvida, fico à disposição.`;
+    }
 
     return encodeURIComponent(message);
   };
@@ -222,14 +276,25 @@ export const ClienteDetail: React.FC = () => {
             </div>
           </div>
 
-          <a 
-            href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${generateWhatsAppMessage()}`} 
-            target="_blank"
-            className="w-full flex items-center justify-center gap-2 text-white bg-green-500 px-4 py-3 rounded-xl text-sm font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform"
-          >
-            <MessageSquare size={18} />
-            Enviar resumo no WhatsApp
-          </a>
+          <div className="flex flex-col gap-2 w-full">
+            <a 
+              href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${generateDetailedExtract()}`} 
+              target="_blank"
+              className="w-full flex items-center justify-center gap-2 text-white bg-green-500 px-4 py-3 rounded-xl text-xs font-bold shadow-lg shadow-green-200 active:scale-95 transition-transform"
+            >
+              <MessageSquare size={16} />
+              Enviar extrato detalhado
+            </a>
+
+            <a 
+              href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}?text=${generateOpenExtract()}`} 
+              target="_blank"
+              className="w-full flex items-center justify-center gap-2 text-green-600 bg-white border border-green-200 px-4 py-3 rounded-xl text-xs font-bold shadow-sm active:scale-95 transition-transform"
+            >
+              <MessageSquare size={16} />
+              Enviar somente em aberto
+            </a>
+          </div>
         </div>
       </header>
 
@@ -395,7 +460,7 @@ export const ClienteDetail: React.FC = () => {
                                 ) : (
                                   <>
                                     <CheckCircle2 size={12} />
-                                    Pagar
+                                    PAGO
                                   </>
                                 )}
                               </button>

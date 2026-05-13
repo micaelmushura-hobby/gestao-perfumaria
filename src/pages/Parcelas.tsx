@@ -105,18 +105,23 @@ export const Parcelas: React.FC = () => {
       if (clienteResp.results.length === 0) return;
       const cliente = clienteResp.results[0];
 
-      let message = `*${venda.produto}* = ${formatCurrency(venda.valor_venda)}\n`;
-      message += `Total 🟰 ${formatCurrency(venda.valor_venda)}\n\n`;
+      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
+
+      let message = `Olá, *${cliente.nome}*!\n\nSegue o resumo da sua compra:\n\n`;
+      message += `*${venda.produto.split('\n')[0]}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
+      message += `Total: ${formatMsgCurrency(venda.valor_venda)}\n\n`;
       
       allP.forEach(p => {
         let icon = '';
         const sVal = getSelectValue(p.status);
         if (sVal === 'Pago') icon = ' ✅';
         else if (isOverdue(p.vencimento, sVal)) icon = ' ⚠️';
-        else icon = ' ⏳';
+        else icon = ''; // Remove or use "Em aberto" if requested, but instructions said "não mostrar ícone"
 
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
       });
+
+      message += `\nQualquer dúvida, fico à disposição.`;
 
       const phone = cliente.telefone.replace(/\D/g, '');
       const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
