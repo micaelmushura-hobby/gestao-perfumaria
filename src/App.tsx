@@ -13,6 +13,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Clientes } from './pages/Clientes';
 import { Vendas } from './pages/Vendas';
 import { Parcelas } from './pages/Parcelas';
+import { Configuracoes } from './pages/Configuracoes';
 import { Perfil } from './pages/Perfil';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/clientes/*" element={<PrivateRoute><Clientes /></PrivateRoute>} />
             <Route path="/vendas/*" element={<PrivateRoute><Vendas /></PrivateRoute>} />
             <Route path="/parcelas" element={<PrivateRoute><Parcelas /></PrivateRoute>} />
+            <Route path="/configuracoes" element={<PrivateRoute><Configuracoes /></PrivateRoute>} />
             <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
             
             <Route path="*" element={<Navigate to="/" />} />

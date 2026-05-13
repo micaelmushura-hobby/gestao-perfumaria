@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, ShoppingBag, Receipt, UserCircle } from 'lucide-react';
+import { NavLink, Outlet, useLocation, Link } from 'react-router-dom';
+import { LayoutDashboard, Users, ShoppingBag, Receipt, Settings, UserCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -32,15 +32,15 @@ export const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-bottom border-gray-100 flex items-center justify-between px-6 py-4">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-6 py-4">
         <h1 className="text-xl font-display font-bold text-brand-primary">
           Gestão <span className="text-brand-accent">Perfumaria</span>
         </h1>
         {user && (
-           <div className="flex items-center gap-2">
+           <Link to="/perfil" className="flex items-center gap-2">
              <span className="text-sm font-medium hidden sm:inline">{user.nome}</span>
              <UserCircle size={24} className="text-gray-400" />
-           </div>
+           </Link>
         )}
       </header>
 
@@ -53,8 +53,8 @@ export const Layout: React.FC = () => {
           <BottomNavItem to="/" icon={LayoutDashboard} label="Início" />
           <BottomNavItem to="/clientes" icon={Users} label="Clientes" />
           <BottomNavItem to="/vendas" icon={ShoppingBag} label="Vendas" />
-          <BottomNavItem to="/parcelas" icon={Receipt} label="Parcelas" />
-          <BottomNavItem to="/perfil" icon={UserCircle} label="Perfil" />
+          <BottomNavItem to="/parcelas" icon={Receipt} label="Finanças" />
+          <BottomNavItem to="/configuracoes" icon={Settings} label="Ajustes" />
         </nav>
       )}
     </div>

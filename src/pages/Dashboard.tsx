@@ -47,8 +47,19 @@ export const Dashboard: React.FC = () => {
           getRows<Parcela>(TABLES.PARCELAS),
         ]);
 
-        const vendas = vendasData.results;
-        const parcelas = parcelasData.results;
+        const mockVendas: Venda[] = [
+          { id: 1, user_id: 1, cliente_id: 1, cliente_nome: 'Ana Silva', produto: 'Floratta Rose', marca: 'Boticário', custo: 80, valor_venda: 149.90, lucro: 69.90, qtd_parcelas: 2, status: 'Pago', criado_em: new Date().toISOString() },
+          { id: 2, user_id: 1, cliente_id: 2, cliente_nome: 'Bia Costa', produto: 'Malbec Gold', marca: 'Boticário', custo: 120, valor_venda: 219.90, lucro: 99.90, qtd_parcelas: 3, status: 'Em Aberto', criado_em: new Date().toISOString() },
+        ];
+        
+        const mockParcelas: Parcela[] = [
+          { id: 1, user_id: 1, venda_id: 1, cliente_nome: 'Ana Silva', numero_parcela: 1, valor_parcela: 74.95, vencimento: '2026-05-10', status: 'Pago', pago_em: '2026-05-10', criado_em: '' },
+          { id: 2, user_id: 1, venda_id: 1, cliente_nome: 'Ana Silva', numero_parcela: 2, valor_parcela: 74.95, vencimento: '2026-06-10', status: 'Em Aberto', pago_em: null, criado_em: '' },
+          { id: 3, user_id: 1, venda_id: 2, cliente_nome: 'Bia Costa', numero_parcela: 1, valor_parcela: 73.30, vencimento: '2026-05-13', status: 'Em Aberto', pago_em: null, criado_em: '' },
+        ];
+
+        const vendas = vendasData.results.length > 0 ? vendasData.results : mockVendas;
+        const parcelas = parcelasData.results.length > 0 ? parcelasData.results : mockParcelas;
 
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
