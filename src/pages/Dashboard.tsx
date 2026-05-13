@@ -13,6 +13,7 @@ import { useBaserow } from '../hooks/useBaserow';
 import { TABLES } from '../services/api';
 import { Venda, Parcela } from '../types';
 import { formatCurrency, isOverdue } from '../utils/formatters';
+import { cn } from '../lib/utils';
 
 interface DashboardStats {
   faturamentoTotal: number;
@@ -38,41 +39,57 @@ export const Dashboard: React.FC = () => {
     vendasMes: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('Todas');
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const [vendasData, parcelasData] = await Promise.all([
           getRows<Venda>(TABLES.VENDAS),
           getRows<Parcela>(TABLES.PARCELAS),
         ]);
 
-        const mockVendas: Venda[] = [
-          { id: 1, user_id: 1, cliente_id: 1, cliente_nome: 'Ana Silva', produto: 'Floratta Rose', marca: 'Boticário', custo: 80, valor_venda: 149.90, lucro: 69.90, qtd_parcelas: 2, status: 'Pago', criado_em: new Date().toISOString() },
-          { id: 2, user_id: 1, cliente_id: 2, cliente_nome: 'Bia Costa', produto: 'Malbec Gold', marca: 'Boticário', custo: 120, valor_venda: 219.90, lucro: 99.90, qtd_parcelas: 3, status: 'Em Aberto', criado_em: new Date().toISOString() },
-        ];
-        
-        const mockParcelas: Parcela[] = [
-          { id: 1, user_id: 1, venda_id: 1, cliente_nome: 'Ana Silva', numero_parcela: 1, valor_parcela: 74.95, vencimento: '2026-05-10', status: 'Pago', pago_em: '2026-05-10', criado_em: '' },
-          { id: 2, user_id: 1, venda_id: 1, cliente_nome: 'Ana Silva', numero_parcela: 2, valor_parcela: 74.95, vencimento: '2026-06-10', status: 'Em Aberto', pago_em: null, criado_em: '' },
-          { id: 3, user_id: 1, venda_id: 2, cliente_nome: 'Bia Costa', numero_parcela: 1, valor_parcela: 73.30, vencimento: '2026-05-13', status: 'Em Aberto', pago_em: null, criado_em: '' },
-        ];
+        const allVendas = vendasData.results || [];
+        const allParcelas = parcelasData.results || [];
 
-        const vendas = vendasData.results.length > 0 ? vendasData.results : mockVendas;
-        const parcelas = parcelasData.results.length > 0 ? parcelasData.results : mockParcelas;
+        // Apply filter if not "Todas"
+        let filteredVendas = allVendas;
+        let filteredParcelas = allParcelas;
+
+        if (filter !== 'Todas') {
+          if (filter === 'Pagas') {
+            filteredParcelas = allParcelas.filter(p => p.status === 'Pago');
+            // A sale is "Paga" if all its installments are "Pago"
+            const vIdsWithOpenParcelas = new Set(allParcelas.filter(p => p.status !== 'Pago').map(p => p.venda_id));
+            filteredVendas = allVendas.filter(v => !vIdsWithOpenParcelas.has(v.id));
+          } else if (filter === 'Em Aberto') {
+            filteredParcelas = allParcelas.filter(p => p.status === 'Em Aberto' || p.status === 'Pendente');
+            const vIdsWithOpen = new Set(filteredParcelas.map(p => p.venda_id));
+            filteredVendas = allVendas.filter(v => vIdsWithOpen.has(v.id));
+          } else if (filter === 'Vencidas') {
+            filteredParcelas = allParcelas.filter(p => isOverdue(p.vencimento, p.status));
+            const vIdsWithVencidas = new Set(filteredParcelas.map(p => p.venda_id));
+            filteredVendas = allVendas.filter(v => vIdsWithVencidas.has(v.id));
+          } else if (filter === 'Pendentes') {
+            filteredParcelas = allParcelas.filter(p => p.status !== 'Pago');
+            const vIdsWithPendentes = new Set(filteredParcelas.map(p => p.venda_id));
+            filteredVendas = allVendas.filter(v => vIdsWithPendentes.has(v.id));
+          }
+        }
 
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
         const newStats: DashboardStats = {
-          faturamentoTotal: vendas.reduce((acc, v) => acc + Number(v.valor_venda), 0),
-          lucroTotal: vendas.reduce((acc, v) => acc + Number(v.lucro), 0),
-          totalRecebido: parcelas.filter(p => p.status === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          totalPendente: parcelas.filter(p => p.status !== 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
-          parcelasVencidas: parcelas.filter(p => isOverdue(p.vencimento, p.status)).length,
-          parcelasAbertas: parcelas.filter(p => p.status === 'Em Aberto' || p.status === 'Pendente').length,
-          parcelasPagas: parcelas.filter(p => p.status === 'Pago').length,
-          vendasMes: vendas.filter(v => {
+          faturamentoTotal: filteredVendas.reduce((acc, v) => acc + Number(v.valor_venda), 0),
+          lucroTotal: filteredVendas.reduce((acc, v) => acc + Number(v.lucro), 0),
+          totalRecebido: filteredParcelas.filter(p => p.status === 'Pago').reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          totalPendente: filteredParcelas.filter(p => p.status !== 'Pago' && !isOverdue(p.vencimento, p.status)).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          parcelasVencidas: filteredParcelas.filter(p => isOverdue(p.vencimento, p.status)).reduce((acc, p) => acc + Number(p.valor_parcela), 0),
+          parcelasAbertas: filteredParcelas.filter(p => p.status === 'Em Aberto' || p.status === 'Pendente').length,
+          parcelasPagas: filteredParcelas.filter(p => p.status === 'Pago').length,
+          vendasMes: filteredVendas.filter(v => {
             const date = new Date(v.criado_em);
             return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
           }).length,
@@ -87,20 +104,22 @@ export const Dashboard: React.FC = () => {
     };
 
     fetchData();
-  }, [getRows]);
+  }, [getRows, filter]);
 
   const StatCard = ({ title, value, icon: Icon, colorClass, to }: any) => (
     <Link to={to} className="card flex flex-col gap-2 relative overflow-hidden group">
       <div className={`absolute right-0 top-0 w-12 h-12 bg-current opacity-5 rounded-bl-3xl transition-transform group-hover:scale-110 ${colorClass}`} />
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{title}</span>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{title}</span>
         <Icon size={18} className={colorClass} />
       </div>
-      <span className="text-2xl font-display font-bold">{typeof value === 'number' && !title.includes('vendas') ? formatCurrency(value) : value}</span>
+      <span className="text-xl font-bold">{typeof value === 'number' && !title.includes('Vendas') ? formatCurrency(value) : value}</span>
     </Link>
   );
 
-  if (loading) {
+  const filterOptions = ['Todas', 'Pagas', 'Em Aberto', 'Vencidas', 'Pendentes'];
+
+  if (loading && stats.faturamentoTotal === 0) {
     return (
       <div className="flex flex-col gap-6 animate-pulse">
         <div className="h-28 bg-gray-200 rounded-2xl w-full" />
@@ -112,13 +131,24 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-10">
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-display font-bold">Resumo Financeiro</h2>
-          <span className="text-xs font-medium bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full">
-            Maio 2026
-          </span>
+          <h2 className="text-2xl font-display font-bold">Dashboard</h2>
+          <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap gap-1">
+            {filterOptions.map(opt => (
+              <button
+                key={opt}
+                onClick={() => setFilter(opt)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
+                  filter === opt ? "bg-white text-brand-primary shadow-sm" : "text-gray-500"
+                )}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         </div>
         
         <div className="bg-brand-primary text-white card border-none shadow-xl flex flex-col gap-4 p-6 relative overflow-hidden">
@@ -126,7 +156,7 @@ export const Dashboard: React.FC = () => {
               <TrendingUp size={120} />
            </div>
            <div className="z-10">
-             <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest">Faturamento Total</span>
+             <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Faturamento Total</span>
              <h3 className="text-4xl font-display font-bold mt-1">{formatCurrency(stats.faturamentoTotal)}</h3>
              <div className="flex items-center gap-2 mt-4 text-sm">
                 <span className="text-brand-accent bg-brand-accent/20 px-2 py-0.5 rounded-md font-bold">
@@ -143,14 +173,14 @@ export const Dashboard: React.FC = () => {
           value={stats.totalRecebido} 
           icon={CheckCircle2} 
           colorClass="text-green-600" 
-          to="/parcelas" 
+          to="/parcelas?filter=pagas" 
         />
         <StatCard 
           title="Pendente" 
           value={stats.totalPendente} 
           icon={Clock} 
           colorClass="text-amber-600" 
-          to="/parcelas" 
+          to="/parcelas?filter=em_aberto" 
         />
         <StatCard 
           title="Vencidas" 

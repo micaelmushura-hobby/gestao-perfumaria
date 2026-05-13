@@ -13,11 +13,13 @@ export const Parcelas: React.FC = () => {
   
   const { getRows, updateRow, loading } = useBaserow();
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
-  const [filter, setFilter] = useState<'Todas' | 'Pagas' | 'Em Aberto' | 'Vencidas'>('Todas');
+  const [filter, setFilter] = useState<'Todas' | 'Pagas' | 'Em Aberto' | 'Vencidas' | 'Pendentes'>('Todas');
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
      if (filterType === 'vencidas') setFilter('Vencidas');
+     if (filterType === 'pagas') setFilter('Pagas');
+     if (filterType === 'em_aberto') setFilter('Em Aberto');
      loadParcelas();
   }, [getRows, filterType]);
 
@@ -45,12 +47,6 @@ export const Parcelas: React.FC = () => {
           ? { ...p, status: newStatus, pago_em: newStatus === 'Pago' ? new Date().toISOString() : null } 
           : p
       ));
-
-      // If all installments of a sale are paid, mark the sale as Pago
-      const saleId = parcela.venda_id;
-      const allSaleParcelas = parcelas.filter(p => p.venda_id === saleId);
-      // Note: local update above isn't reflected in `allSaleParcelas` yet in the same execution scope easily
-      // but we can check if the others are paid
     } catch (err) {
       console.error(err);
     }
@@ -63,25 +59,13 @@ export const Parcelas: React.FC = () => {
     if (filter === 'Pagas') return matchesSearch && p.status === 'Pago';
     if (filter === 'Em Aberto') return matchesSearch && p.status !== 'Pago' && !overdue;
     if (filter === 'Vencidas') return matchesSearch && overdue;
+    if (filter === 'Pendentes') return matchesSearch && p.status !== 'Pago';
     return matchesSearch;
   });
 
   const sendWhatsAppCollection = async (parcela: Parcela) => {
     try {
-      // We need to fetch details of all installments for this sale to build the message
-      const resp = await getRows<Parcela>(TABLES.PARCELAS, {
-        filters: JSON.stringify({
-          filter_type: 'AND',
-          filters: [{ field: 'venda_id', type: 'equal', value: parcela.venda_id.toString() }]
-        })
-      });
-      
-      const allP = resp.results.sort((a, b) => a.numero_parcela - b.numero_parcela);
-      const total = allP.reduce((acc, p) => acc + Number(p.valor_parcela), 0);
-      
-      // Fetch cliente to get his phone
-      // (Actually we might need cliente_id on Parcela or fetch Venda first)
-      // Since we don't have cliente_id on Parcela, let's fetch the Venda
+      // Find the sale to get products and client info
       const vendaResp = await getRows<Venda>(TABLES.VENDAS, {
         filters: JSON.stringify({
           filter_type: 'AND',
@@ -91,7 +75,18 @@ export const Parcelas: React.FC = () => {
       
       if (vendaResp.results.length === 0) return;
       const venda = vendaResp.results[0];
+
+      // Find all installments for THIS SALE
+      const resp = await getRows<Parcela>(TABLES.PARCELAS, {
+        filters: JSON.stringify({
+          filter_type: 'AND',
+          filters: [{ field: 'venda_id', type: 'equal', value: parcela.venda_id.toString() }]
+        })
+      });
       
+      const allP = resp.results.sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
+      
+      // Fetch cliente to get phone
       const clienteResp = await getRows<Cliente>(TABLES.CLIENTES, {
         filters: JSON.stringify({
           filter_type: 'AND',
@@ -102,15 +97,16 @@ export const Parcelas: React.FC = () => {
       if (clienteResp.results.length === 0) return;
       const cliente = clienteResp.results[0];
 
-      let message = `Olá ${cliente.nome}!\n\n`;
-      message += `${venda.produto} - ${venda.marca} = ${formatCurrency(venda.valor_venda)}\n\n`;
-      message += `Total 🟰 ${formatCurrency(total)}\n\n`;
+      let message = `*${venda.produto}* = ${formatCurrency(venda.valor_venda)}\n`;
+      message += `Total 🟰 ${formatCurrency(venda.valor_venda)}\n\n`;
       
       allP.forEach(p => {
-        const isP = p.status === 'Pago';
-        const isV = isOverdue(p.vencimento, p.status);
-        const icon = isP ? '✅' : (isV ? '⚠️' : '');
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)} ${icon}\n`;
+        let icon = '';
+        if (p.status === 'Pago') icon = ' ✅';
+        else if (isOverdue(p.vencimento, p.status)) icon = ' ⚠️';
+        else icon = ' ⏳';
+
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatCurrency(p.valor_parcela)}${icon}\n`;
       });
 
       const phone = cliente.telefone.replace(/\D/g, '');
@@ -138,7 +134,7 @@ export const Parcelas: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto py-2 no-scrollbar">
-          {(['Todas', 'Pagas', 'Em Aberto', 'Vencidas'] as const).map(f => (
+          {(['Todas', 'Pagas', 'Em Aberto', 'Vencidas', 'Pendentes'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}

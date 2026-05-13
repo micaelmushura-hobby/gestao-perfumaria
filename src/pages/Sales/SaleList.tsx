@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Phone, Calendar, Briefcase, Search } from 'lucide-react';
+import { ShoppingBag, Plus, Phone, Calendar, Briefcase, Search, Edit2 } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Venda } from '../../types';
@@ -84,8 +84,14 @@ export const SaleList: React.FC = () => {
                     <span>{venda.marca}</span>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                   <StatusBadge status={venda.status} />
+                <div className="flex flex-col items-end gap-2">
+                   <div className="flex gap-2">
+                     <Link to={`/vendas/editar/${venda.id}`} className="p-1 px-2 text-brand-accent bg-brand-accent/10 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-brand-accent/20">
+                       <Edit2 size={12} />
+                       Editar
+                     </Link>
+                     <StatusBadge status={venda.status} />
+                   </div>
                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{formatDate(venda.criado_em)}</span>
                 </div>
               </div>
