@@ -134,20 +134,39 @@ export const Parcelas: React.FC = () => {
       if (clienteResp.results.length === 0) return;
       const cliente = clienteResp.results[0];
 
-      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
+      const fmt = (val: number) => formatCurrency(val).replace(/\u00A0/g, ' ');
 
-      let message = `Olá, *${cliente.nome}*!\n\nSegue o resumo da sua compra:\n\n`;
-      message += `*${venda.produto.split('\n')[0]}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
-      message += `Total: ${formatMsgCurrency(venda.valor_venda)}\n\n`;
+      let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo da sua compra:\n\n`;
+      
+      const productLines = (venda.produto || '').split('\n');
+      if (productLines.length > 1) {
+        message += `🛍️ *Itens da compra*\n`;
+        productLines.forEach(line => {
+          const parts = line.split(' = ');
+          if (parts.length === 2) {
+            message += `• ${parts[0]} = R$ ${parts[1]}\n`;
+          } else {
+            message += `• ${line}\n`;
+          }
+        });
+      } else {
+        const parts = venda.produto.split(' = ');
+        if (parts.length === 2) {
+          message += `🛍️ *${parts[0]}*\n`;
+        } else {
+          message += `🛍️ *${venda.produto}*\n`;
+        }
+      }
+      
+      message += `💰 Total: ${fmt(venda.valor_venda)}\n\n`;
       
       allP.forEach(p => {
         let icon = '';
         const sVal = getSelectValue(p.status);
         if (sVal === 'Pago') icon = ' ✅';
         else if (isOverdue(p.vencimento, sVal)) icon = ' ⚠️';
-        else icon = ''; // Remove or use "Em aberto" if requested, but instructions said "não mostrar ícone"
 
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
 
       message += `\nQualquer dúvida, fico à disposição.`;

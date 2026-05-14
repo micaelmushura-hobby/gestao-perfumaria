@@ -142,23 +142,32 @@ export const ClienteDetail: React.FC = () => {
     if (!cliente) return '';
 
     let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo da sua compra:\n\n`;
+    const fmt = (val: number) => formatCurrency(val).replace(/\u00A0/g, ' ');
     
     vendas.forEach((venda, idx) => {
       const vendaParcelas = parcelas.filter(p => Number(p.venda_id) === venda.id).sort((a, b) => Number(a.numero_parcela) - Number(b.numero_parcela));
       
-      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
-
-      // Parse products if saved in multiple format
       const productLines = (venda.produto || '').split('\n');
       if (productLines.length > 1) {
+        message += `🛍️ *Itens da compra*\n`;
         productLines.forEach(line => {
-          message += `*${line}*\n`;
+          const parts = line.split(' = ');
+          if (parts.length === 2) {
+            message += `• ${parts[0]} = R$ ${parts[1]}\n`;
+          } else {
+            message += `• ${line}\n`;
+          }
         });
       } else {
-        message += `*${venda.produto}* = ${formatMsgCurrency(venda.valor_venda)}\n`;
+        const parts = venda.produto.split(' = ');
+        if (parts.length === 2) {
+          message += `🛍️ *${parts[0]}*\n`;
+        } else {
+          message += `🛍️ *${venda.produto}*\n`;
+        }
       }
       
-      message += `Total: ${formatMsgCurrency(venda.valor_venda)}\n\n`;
+      message += `💰 Total: ${fmt(venda.valor_venda)}\n\n`;
       
       vendaParcelas.forEach(p => {
         let icon = '';
@@ -166,19 +175,19 @@ export const ClienteDetail: React.FC = () => {
         if (statusVal === 'Pago') icon = ' ✅';
         else if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
 
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
 
       if (idx < vendas.length - 1) {
-        message += `\n<<<<<<<<<<<<<<<<<<\n\n`;
+        message += `\n────────────\n\n`;
       }
     });
 
-    message += `\n---\n\n*Resumo:*\n`;
-    message += `Total comprado: ${formatCurrency(stats.totalGasto)}\n`;
-    message += `Total pago: ${formatCurrency(stats.totalPago)}\n`;
-    message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n`;
-    message += `Total vencido: ${formatCurrency(stats.totalVencido)}\n\n`;
+    message += `\n📌 *Resumo*\n`;
+    message += `• Total comprado: ${fmt(stats.totalGasto)}\n`;
+    message += `• Total pago: ${fmt(stats.totalPago)}\n`;
+    message += `• Total em aberto: ${fmt(stats.totalPendente)}\n`;
+    message += `• Total vencido: ${fmt(stats.totalVencido)}\n\n`;
     message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
     message += `Qualquer dúvida, fico à disposição.`;
 
@@ -189,6 +198,7 @@ export const ClienteDetail: React.FC = () => {
     if (!cliente) return '';
 
     let message = `Olá, *${cliente.nome}*! Tudo bem?\n\nSegue o resumo dos valores em aberto:\n\n`;
+    const fmt = (val: number) => formatCurrency(val).replace(/\u00A0/g, ' ');
     
     let hasOpen = false;
     vendas.forEach((venda, idx) => {
@@ -200,29 +210,43 @@ export const ClienteDetail: React.FC = () => {
       if (openParcelas.length === 0) return;
       hasOpen = true;
 
-      const formatMsgCurrency = (val: number) => formatCurrency(val).replace('R$\u00A0', '').replace('R$ ', '');
-
-      message += `*${venda.produto.split('\n')[0]}*\n`;
+      const productLines = (venda.produto || '').split('\n');
+      if (productLines.length > 1) {
+        message += `🛍️ *Itens da compra*\n`;
+      } else {
+        const parts = venda.produto.split(' = ');
+        if (parts.length === 2) {
+          message += `🛍️ *${parts[0]}*\n`;
+        } else {
+          message += `🛍️ *${venda.produto}*\n`;
+        }
+      }
       
       openParcelas.forEach(p => {
         let icon = '';
         const statusVal = getSelectValue(p.status);
         if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
 
-        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${formatMsgCurrency(p.valor_parcela)}${icon}\n`;
+        message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
 
       if (idx < vendas.length - 1) {
-        message += `\n<<<<<<<<<<<<<<<<<<\n\n`;
+        // Only add separator if there are more open sales
+        const remainingOpen = vendas.slice(idx + 1).some(v => 
+          parcelas.filter(p => Number(p.venda_id) === v.id).some(p => getSelectValue(p.status) !== 'Pago')
+        );
+        if (remainingOpen) {
+          message += `\n────────────\n\n`;
+        }
       }
     });
 
     if (!hasOpen) {
       message = `Olá, *${cliente.nome}*! Tudo bem?\n\nVocê não possui parcelas em aberto no momento. ✅`;
     } else {
-      message += `\n---\n\n*Resumo em aberto:*\n`;
-      message += `Total em aberto: ${formatCurrency(stats.totalPendente)}\n`;
-      message += `Total vencido: ${formatCurrency(stats.totalVencido)}\n\n`;
+      message += `\n📌 *Resumo em aberto*\n`;
+      message += `• Total em aberto: ${fmt(stats.totalPendente)}\n`;
+      message += `• Total vencido: ${fmt(stats.totalVencido)}\n\n`;
       message += `*Forma de pagamento:* ${paymentMethod}\n\n`;
       message += `Qualquer dúvida, fico à disposição.`;
     }
