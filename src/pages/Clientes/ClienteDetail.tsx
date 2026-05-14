@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { ArrowLeft, Edit2, Phone, Briefcase, History, TrendingUp, DollarSign, Wallet, ShoppingBag, Clock, CheckCircle2, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Edit2, Phone, Briefcase, History, TrendingUp, DollarSign, Wallet, ShoppingBag, Clock, CheckCircle2, MessageSquare, Trash2 } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Cliente, Venda, Parcela } from '../../types';
@@ -10,12 +10,13 @@ import { cn } from '../../lib/utils';
 export const ClienteDetail: React.FC = () => {
   const { id } = useParams();
   const location = useLocation();
-  const { getRows, updateRow, loading: baserowLoading } = useBaserow();
+  const { getRows, updateRow, deleteRow, loading: baserowLoading } = useBaserow();
   const [cliente, setCliente] = useState<Cliente | null>(location.state?.cliente || null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'Dinheiro' | 'Cartão'>('PIX');
   const [stats, setStats] = useState({
     totalGasto: 0,
@@ -106,6 +107,34 @@ export const ClienteDetail: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       alert(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteSale = async (vendaId: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir esta venda? Essa ação também excluirá as parcelas relacionadas.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // 1. Get all parcels for this sale
+      const parcelsForSale = parcelas.filter(p => Number(p.venda_id) === vendaId);
+
+      // 2. Delete all related parcels
+      if (parcelsForSale.length > 0) {
+        await Promise.all(parcelsForSale.map(p => deleteRow(TABLES.PARCELAS, p.id)));
+      }
+
+      // 3. Delete the sale itself
+      await deleteRow(TABLES.VENDAS, vendaId);
+
+      alert("Venda excluída com sucesso.");
+      await loadData();
+    } catch (err: any) {
+      console.error('Error deleting sale:', err);
+      alert(getErrorMessage(err));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -403,7 +432,17 @@ export const ClienteDetail: React.FC = () => {
                         <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg italic">{venda.qtd_parcelas}x Parcelas</span>
                         <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-lg">Custo: {formatCurrency(venda.custo)}</span>
                       </div>
-                      <StatusBadge status={vendaStatus} date={venda.criado_em} />
+                      <div className="flex gap-2 items-center">
+                        <StatusBadge status={vendaStatus} date={venda.criado_em} />
+                        <button 
+                          onClick={() => handleDeleteSale(venda.id)}
+                          disabled={isDeleting}
+                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Excluir Venda"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

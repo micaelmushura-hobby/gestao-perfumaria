@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Plus, Phone, Calendar, Briefcase, Search, Edit2 } from 'lucide-react';
+import { ShoppingBag, Plus, Phone, Calendar, Briefcase, Search, Edit2, Trash2 } from 'lucide-react';
 import { useBaserow } from '../../hooks/useBaserow';
 import { TABLES } from '../../services/api';
 import { Venda } from '../../types';
-import { formatCurrency, formatDate, getSelectValue } from '../../utils/formatters';
+import { formatCurrency, formatDate, getSelectValue, getErrorMessage } from '../../utils/formatters';
 
 export const SaleList: React.FC = () => {
-  const { getRows, loading } = useBaserow();
+  const { getRows, deleteRow, loading } = useBaserow();
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadVendas();
@@ -21,8 +22,42 @@ export const SaleList: React.FC = () => {
         order_by: '-criado_em',
       });
       setVendas(data.results);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteSale = async (vendaId: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir esta venda? Essa ação também excluirá as parcelas relacionadas.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // 1. Get all parcels for this sale
+      const parcelsResp = await getRows<any>(TABLES.PARCELAS, {
+        filters: JSON.stringify({
+          filter_type: 'AND',
+          filters: [{ field: 'venda_id', type: 'equal', value: vendaId.toString() }],
+        }),
+      });
+
+      // 2. Delete all related parcels
+      if (parcelsResp.results && parcelsResp.results.length > 0) {
+        await Promise.all(parcelsResp.results.map((p: any) => deleteRow(TABLES.PARCELAS, p.id)));
+      }
+
+      // 3. Delete the sale itself
+      await deleteRow(TABLES.VENDAS, vendaId);
+
+      alert("Venda excluída com sucesso.");
+      loadVendas();
+    } catch (err: any) {
+      console.error('Error deleting sale:', err);
+      alert(getErrorMessage(err));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -91,6 +126,14 @@ export const SaleList: React.FC = () => {
                        <Edit2 size={12} />
                        Editar
                      </Link>
+                     <button 
+                       onClick={() => handleDeleteSale(venda.id)}
+                       disabled={isDeleting}
+                       className="p-1 px-2 text-red-500 bg-red-50 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-red-100 disabled:opacity-50"
+                     >
+                       <Trash2 size={12} />
+                       Excluir
+                     </button>
                      <StatusBadge status={venda.status} />
                    </div>
                    <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{formatDate(venda.criado_em)}</span>

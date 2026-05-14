@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, CheckCircle2, Circle, MessageSquare, AlertCircle } from 'lucide-react';
+import { Search, Filter, CheckCircle2, Circle, MessageSquare, AlertCircle, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useBaserow } from '../hooks/useBaserow';
 import { TABLES } from '../services/api';
@@ -11,10 +11,11 @@ export const Parcelas: React.FC = () => {
   const [searchParams] = useSearchParams();
   const filterType = searchParams.get('filter');
   
-  const { getRows, updateRow, loading } = useBaserow();
+  const { getRows, updateRow, deleteRow, loading } = useBaserow();
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [filter, setFilter] = useState<'Todas' | 'Pagas' | 'Em Aberto' | 'Vencidas' | 'Pendentes'>('Todas');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
      if (filterType === 'vencidas') setFilter('Vencidas');
@@ -53,6 +54,34 @@ export const Parcelas: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       alert(getErrorMessage(err));
+    }
+  };
+
+  const handleDeleteSale = async (vendaId: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir esta venda? Essa ação também excluirá as parcelas relacionadas.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // 1. Get all parcels for this sale
+      const relatedInstallments = parcelas.filter(p => Number(p.venda_id) === vendaId);
+
+      // 2. Delete all related parcels
+      if (relatedInstallments.length > 0) {
+        await Promise.all(relatedInstallments.map(p => deleteRow(TABLES.PARCELAS, p.id)));
+      }
+
+      // 3. Delete the sale itself
+      await deleteRow(TABLES.VENDAS, vendaId);
+
+      alert("Venda excluída com sucesso.");
+      loadParcelas();
+    } catch (err: any) {
+      console.error('Error deleting sale:', err);
+      alert(getErrorMessage(err));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -225,6 +254,15 @@ export const Parcelas: React.FC = () => {
                       <MessageSquare size={18} />
                     </button>
                   )}
+
+                  <button 
+                    onClick={() => handleDeleteSale(Number(parcela.venda_id))}
+                    disabled={isDeleting}
+                    className="w-12 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl border border-red-100 hover:bg-red-100 disabled:opacity-50"
+                    title="Excluir Venda"
+                  >
+                    <Trash2 size={18} />
+                  </button>
                 </div>
               </div>
             );
