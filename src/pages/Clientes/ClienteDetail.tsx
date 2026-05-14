@@ -7,6 +7,15 @@ import { Cliente, Venda, Parcela } from '../../types';
 import { formatCurrency, formatPhone, formatDate, isOverdue, getSelectValue, getErrorMessage } from '../../utils/formatters';
 import { cn } from '../../lib/utils';
 
+const EMOJIS = {
+  compra: '🛍️',
+  total: '💰',
+  resumo: '📌',
+  pago: '✅',
+  vencido: '⚠️',
+  calendario: '📅',
+};
+
 export const ClienteDetail: React.FC = () => {
   const { id } = useParams();
   const location = useLocation();
@@ -149,7 +158,7 @@ export const ClienteDetail: React.FC = () => {
       
       const productLines = (venda.produto || '').split('\n');
       if (productLines.length > 1) {
-        message += `🛍️ *Itens da compra*\n`;
+        message += `${EMOJIS.compra} *Itens da compra*\n`;
         productLines.forEach(line => {
           const parts = line.split(' = ');
           if (parts.length === 2) {
@@ -161,19 +170,19 @@ export const ClienteDetail: React.FC = () => {
       } else {
         const parts = venda.produto.split(' = ');
         if (parts.length === 2) {
-          message += `🛍️ *${parts[0]}*\n`;
+          message += `${EMOJIS.compra} *${parts[0]}*\n`;
         } else {
-          message += `🛍️ *${venda.produto}*\n`;
+          message += `${EMOJIS.compra} *${venda.produto}*\n`;
         }
       }
       
-      message += `💰 Total: ${fmt(venda.valor_venda)}\n\n`;
+      message += `${EMOJIS.total} Total: ${fmt(venda.valor_venda)}\n\n`;
       
       vendaParcelas.forEach(p => {
         let icon = '';
         const statusVal = getSelectValue(p.status);
-        if (statusVal === 'Pago') icon = ' ✅';
-        else if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
+        if (statusVal === 'Pago') icon = ` ${EMOJIS.pago}`;
+        else if (isOverdue(p.vencimento, statusVal)) icon = ` ${EMOJIS.vencido}`;
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
@@ -183,7 +192,7 @@ export const ClienteDetail: React.FC = () => {
       }
     });
 
-    message += `\n📌 *Resumo*\n`;
+    message += `\n${EMOJIS.resumo} *Resumo*\n`;
     message += `• Total comprado: ${fmt(stats.totalGasto)}\n`;
     message += `• Total pago: ${fmt(stats.totalPago)}\n`;
     message += `• Total em aberto: ${fmt(stats.totalPendente)}\n`;
@@ -212,20 +221,20 @@ export const ClienteDetail: React.FC = () => {
 
       const productLines = (venda.produto || '').split('\n');
       if (productLines.length > 1) {
-        message += `🛍️ *Itens da compra*\n`;
+        message += `${EMOJIS.compra} *Itens da compra*\n`;
       } else {
         const parts = venda.produto.split(' = ');
         if (parts.length === 2) {
-          message += `🛍️ *${parts[0]}*\n`;
+          message += `${EMOJIS.compra} *${parts[0]}*\n`;
         } else {
-          message += `🛍️ *${venda.produto}*\n`;
+          message += `${EMOJIS.compra} *${venda.produto}*\n`;
         }
       }
       
       openParcelas.forEach(p => {
         let icon = '';
         const statusVal = getSelectValue(p.status);
-        if (isOverdue(p.vencimento, statusVal)) icon = ' ⚠️';
+        if (isOverdue(p.vencimento, statusVal)) icon = ` ${EMOJIS.vencido}`;
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
@@ -242,9 +251,9 @@ export const ClienteDetail: React.FC = () => {
     });
 
     if (!hasOpen) {
-      message = `Olá, *${cliente.nome}*! Tudo bem?\n\nVocê não possui parcelas em aberto no momento. ✅`;
+      message = `Olá, *${cliente.nome}*! Tudo bem?\n\nVocê não possui parcelas em aberto no momento. ${EMOJIS.pago}`;
     } else {
-      message += `\n📌 *Resumo em aberto*\n`;
+      message += `\n${EMOJIS.resumo} *Resumo em aberto*\n`;
       message += `• Total em aberto: ${fmt(stats.totalPendente)}\n`;
       message += `• Total vencido: ${fmt(stats.totalVencido)}\n\n`;
       message += `*Forma de pagamento:* ${paymentMethod}\n\n`;

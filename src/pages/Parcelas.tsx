@@ -7,6 +7,15 @@ import { Parcela, Cliente, Venda } from '../types';
 import { formatCurrency, formatDate, isOverdue, getSelectValue, getErrorMessage } from '../utils/formatters';
 import { cn } from '../lib/utils';
 
+const EMOJIS = {
+  compra: '🛍️',
+  total: '💰',
+  resumo: '📌',
+  pago: '✅',
+  vencido: '⚠️',
+  calendario: '📅',
+};
+
 export const Parcelas: React.FC = () => {
   const [searchParams] = useSearchParams();
   const filterType = searchParams.get('filter');
@@ -140,7 +149,7 @@ export const Parcelas: React.FC = () => {
       
       const productLines = (venda.produto || '').split('\n');
       if (productLines.length > 1) {
-        message += `🛍️ *Itens da compra*\n`;
+        message += `${EMOJIS.compra} *Itens da compra*\n`;
         productLines.forEach(line => {
           const parts = line.split(' = ');
           if (parts.length === 2) {
@@ -152,19 +161,19 @@ export const Parcelas: React.FC = () => {
       } else {
         const parts = venda.produto.split(' = ');
         if (parts.length === 2) {
-          message += `🛍️ *${parts[0]}*\n`;
+          message += `${EMOJIS.compra} *${parts[0]}*\n`;
         } else {
-          message += `🛍️ *${venda.produto}*\n`;
+          message += `${EMOJIS.compra} *${venda.produto}*\n`;
         }
       }
       
-      message += `💰 Total: ${fmt(venda.valor_venda)}\n\n`;
+      message += `${EMOJIS.total} Total: ${fmt(venda.valor_venda)}\n\n`;
       
       allP.forEach(p => {
         let icon = '';
         const sVal = getSelectValue(p.status);
-        if (sVal === 'Pago') icon = ' ✅';
-        else if (isOverdue(p.vencimento, sVal)) icon = ' ⚠️';
+        if (sVal === 'Pago') icon = ` ${EMOJIS.pago}`;
+        else if (isOverdue(p.vencimento, sVal)) icon = ` ${EMOJIS.vencido}`;
 
         message += `${p.numero_parcela}. ${formatDate(p.vencimento)} = ${fmt(p.valor_parcela)}${icon}\n`;
       });
