@@ -41,13 +41,13 @@ export const Login: React.FC = () => {
   return (
     <div className="flex flex-col gap-8 py-10">
       <div className="text-center">
-        <h2 className="text-3xl font-display font-bold">Bem-vindo</h2>
-        <p className="text-gray-500 mt-2">Entre na sua conta para gerenciar seu negócio</p>
+        <h2 className="text-3xl font-display font-bold dark:text-white">Bem-vindo</h2>
+        <p className="text-gray-500 dark:text-gray-400 mt-2">Entre na sua conta para gerenciar seu negócio</p>
       </div>
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium">
+          <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-3 rounded-xl text-sm font-medium">
             {error}
           </div>
         )}

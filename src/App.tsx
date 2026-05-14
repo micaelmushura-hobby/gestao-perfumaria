@@ -6,6 +6,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
@@ -30,24 +31,26 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/clientes/*" element={<PrivateRoute><Clientes /></PrivateRoute>} />
-            <Route path="/vendas/*" element={<PrivateRoute><Vendas /></PrivateRoute>} />
-            <Route path="/parcelas" element={<PrivateRoute><Parcelas /></PrivateRoute>} />
-            <Route path="/configuracoes" element={<PrivateRoute><Configuracoes /></PrivateRoute>} />
-            <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+              <Route path="/clientes/*" element={<PrivateRoute><Clientes /></PrivateRoute>} />
+              <Route path="/vendas/*" element={<PrivateRoute><Vendas /></PrivateRoute>} />
+              <Route path="/parcelas" element={<PrivateRoute><Parcelas /></PrivateRoute>} />
+              <Route path="/configuracoes" element={<PrivateRoute><Configuracoes /></PrivateRoute>} />
+              <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -138,14 +138,14 @@ export const Dashboard: React.FC = () => {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-display font-bold">Dashboard</h2>
-          <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap gap-1">
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl overflow-x-auto no-scrollbar scroll-smooth whitespace-nowrap gap-1">
             {filterOptions.map(opt => (
               <button
                 key={opt}
                 onClick={() => setFilter(opt)}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                  filter === opt ? "bg-white text-brand-primary shadow-sm" : "text-gray-500"
+                  filter === opt ? "bg-white dark:bg-gray-700 text-brand-primary dark:text-white shadow-sm" : "text-gray-500"
                 )}
               >
                 {opt}
@@ -204,17 +204,17 @@ export const Dashboard: React.FC = () => {
       <section className="flex flex-col gap-4">
         <h3 className="text-lg font-display font-bold">Ações Rápidas</h3>
         <div className="grid grid-cols-2 gap-3">
-          <Link to="/vendas/nova" className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:bg-gray-50">
-            <div className="bg-green-100 p-2 rounded-lg text-green-600">
+          <Link to="/vendas/nova" className="flex items-center gap-3 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-800">
+            <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg text-green-600 dark:text-green-400">
               <PlusCircle size={24} />
             </div>
-            <span className="font-semibold text-sm">Nova Venda</span>
+            <span className="font-semibold text-sm dark:text-white">Nova Venda</span>
           </Link>
-          <Link to="/clientes/novo" className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm active:bg-gray-50">
-            <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+          <Link to="/clientes/novo" className="flex items-center gap-3 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm active:bg-gray-50 dark:active:bg-gray-800">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg text-blue-600 dark:text-blue-400">
               <PlusCircle size={24} />
             </div>
-            <span className="font-semibold text-sm">Novo Cliente</span>
+            <span className="font-semibold text-sm dark:text-white">Novo Cliente</span>
           </Link>
         </div>
       </section>
