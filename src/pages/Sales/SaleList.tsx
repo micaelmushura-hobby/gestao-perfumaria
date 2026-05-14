@@ -85,7 +85,7 @@ export const SaleList: React.FC = () => {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-display font-bold">Vendas</h2>
+          <h2 className="text-2xl font-display font-bold dark:text-white">Vendas</h2>
           <Link to="/vendas/nova" className="btn-primary flex items-center gap-2 px-4 py-2">
             <Plus size={18} />
             Nova
@@ -111,11 +111,11 @@ export const SaleList: React.FC = () => {
           ))
         ) : filteredVendas.length > 0 ? (
           filteredVendas.map((venda) => (
-            <div key={venda.id} className="card p-5 flex flex-col gap-4">
+            <div key={venda.id} className="card p-5 flex flex-col gap-4 dark:bg-gray-900 border-none">
               <div className="flex justify-between items-start">
                 <div className="flex flex-col gap-1">
-                  <h3 className="font-bold text-lg leading-tight">{venda.produto}</h3>
-                  <div className="flex items-center gap-2 text-gray-400 text-sm">
+                  <h3 className="font-bold text-lg leading-tight dark:text-white">{venda.produto}</h3>
+                  <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-sm">
                     <Briefcase size={14} />
                     <span>{getSelectValue(venda.marca)}</span>
                   </div>
@@ -129,37 +129,37 @@ export const SaleList: React.FC = () => {
                      <button 
                        onClick={() => handleDeleteSale(venda.id)}
                        disabled={isDeleting}
-                       className="p-1 px-2 text-red-500 bg-red-50 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-red-100 disabled:opacity-50"
+                       className="p-1 px-2 text-red-500 bg-red-50 dark:bg-red-950/30 rounded flex items-center gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50"
                      >
                        <Trash2 size={12} />
                        Excluir
                      </button>
                      <StatusBadge status={venda.status} />
                    </div>
-                   <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{formatDate(venda.criado_em)}</span>
+                   <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase font-bold tracking-wider">{formatDate(venda.criado_em)}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-3 border-y border-gray-50">
+              <div className="flex items-center justify-between py-3 border-y border-gray-50 dark:border-gray-800">
                  <div className="flex flex-col">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valor</span>
-                    <span className="font-bold text-xl">{formatCurrency(venda.valor_venda)}</span>
+                    <span className="font-bold text-xl dark:text-white">{formatCurrency(venda.valor_venda)}</span>
                  </div>
                  <div className="flex flex-col items-end">
                     <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Lucro</span>
-                    <span className="font-bold text-green-600">+{formatCurrency(venda.lucro)}</span>
+                    <span className="font-bold text-green-600 dark:text-green-400">+{formatCurrency(venda.lucro)}</span>
                  </div>
               </div>
 
               <div className="flex items-center justify-between">
                 <Link 
                   to={`/clientes/${venda.cliente_id}`}
-                  className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-brand-accent transition-colors"
+                  className="flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-brand-accent transition-colors"
                 >
                   <Phone size={14} className="text-brand-accent" />
                   {venda.cliente_nome}
                 </Link>
-                <span className="text-xs font-medium text-gray-400">
+                <span className="text-xs font-medium text-gray-400 dark:text-gray-500">
                   {venda.qtd_parcelas} parcelas
                 </span>
               </div>

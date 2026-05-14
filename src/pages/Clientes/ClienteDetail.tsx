@@ -304,22 +304,22 @@ export const ClienteDetail: React.FC = () => {
         <div className="w-20 h-20 bg-brand-primary text-white rounded-full flex items-center justify-center text-3xl font-display font-bold shadow-lg">
           {cliente.nome.charAt(0).toUpperCase()}
         </div>
-        <h2 className="text-3xl font-display font-bold text-center text-gray-800">{cliente.nome}</h2>
+        <h2 className="text-3xl font-display font-bold text-center text-gray-800 dark:text-gray-100">{cliente.nome}</h2>
         
         <div className="flex flex-col items-center gap-4 w-full max-w-xs">
           <div className="flex gap-2 w-full">
             <a 
               href={`https://wa.me/55${cliente.telefone.replace(/\D/g, '')}`} 
               target="_blank"
-              className="flex-1 flex items-center justify-center gap-2 text-green-600 bg-green-50 px-4 py-2.5 rounded-xl text-sm font-bold border border-green-100 active:scale-95 transition-transform"
+              className="flex-1 flex items-center justify-center gap-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2.5 rounded-xl text-sm font-bold border border-green-100 dark:border-green-900/30 active:scale-95 transition-transform"
             >
               <Phone size={16} />
               {formatPhone(cliente.telefone)}
             </a>
           </div>
 
-          <div className="flex flex-col gap-2 w-full bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Forma de Pagto (WhatsApp)</label>
+          <div className="flex flex-col gap-2 w-full bg-white dark:bg-gray-900 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Forma de Pagto (WhatsApp)</label>
             <div className="grid grid-cols-3 gap-1">
               {(['PIX', 'Dinheiro', 'Cartão'] as const).map(method => (
                 <button
@@ -328,8 +328,8 @@ export const ClienteDetail: React.FC = () => {
                   className={cn(
                     "py-1.5 text-[10px] font-bold rounded-lg transition-all",
                     paymentMethod === method 
-                      ? "bg-brand-primary text-white shadow-sm" 
-                      : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                      ? "bg-brand-primary dark:bg-brand-accent text-white dark:text-black shadow-sm" 
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
                   )}
                 >
                   {method}
@@ -361,36 +361,36 @@ export const ClienteDetail: React.FC = () => {
       </header>
 
       <section className="grid grid-cols-2 gap-3">
-        <div className="card flex flex-col gap-1 p-4 bg-white border-brand-primary/20">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+        <div className="card flex flex-col gap-1 p-4 bg-white dark:bg-gray-900 border-brand-primary/20">
+          <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
             <ShoppingBag size={10} /> Consumo Total
           </span>
-          <span className="text-lg font-bold text-gray-700">{formatCurrency(stats.totalGasto)}</span>
+          <span className="text-lg font-bold text-gray-700 dark:text-gray-200">{formatCurrency(stats.totalGasto)}</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4 bg-white border-brand-primary/20">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+        <div className="card flex flex-col gap-1 p-4 bg-white dark:bg-gray-900 border-brand-primary/20">
+          <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
             <TrendingUp size={10} /> Lucro Gerado
           </span>
-          <span className="text-lg font-bold text-brand-primary">{formatCurrency(stats.lucroGerado)}</span>
+          <span className="text-lg font-bold text-brand-primary dark:text-brand-accent">{formatCurrency(stats.lucroGerado)}</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4 bg-green-50 border-green-200">
-          <span className="text-[9px] font-bold text-green-600 uppercase tracking-widest flex items-center gap-1">
+        <div className="card flex flex-col gap-1 p-4 bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-900/30">
+          <span className="text-[9px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest flex items-center gap-1">
             <CheckCircle2 size={10} /> Total Pago
           </span>
-          <span className="text-lg font-bold text-green-700">{formatCurrency(stats.totalPago)}</span>
-          <span className="text-[9px] text-green-600/60 font-medium">{stats.parcelasPagas} parcelas</span>
+          <span className="text-lg font-bold text-green-700 dark:text-green-300">{formatCurrency(stats.totalPago)}</span>
+          <span className="text-[9px] text-green-600/60 dark:text-green-400/60 font-medium">{stats.parcelasPagas} parcelas</span>
         </div>
-        <div className="card flex flex-col gap-1 p-4 bg-amber-50 border-amber-200">
-          <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest flex items-center gap-1">
+        <div className="card flex flex-col gap-1 p-4 bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30">
+          <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1">
             <Clock size={10} /> Valor Aberto
           </span>
-          <span className="text-lg font-bold text-amber-700">{formatCurrency(stats.totalPendente)}</span>
-          <span className="text-[9px] text-amber-600/60 font-medium">{stats.parcelasAbertas + stats.parcelasVencidas} em aberto</span>
+          <span className="text-lg font-bold text-amber-700 dark:text-amber-300">{formatCurrency(stats.totalPendente)}</span>
+          <span className="text-[9px] text-amber-600/60 dark:text-amber-400/60 font-medium">{stats.parcelasAbertas + stats.parcelasVencidas} em aberto</span>
         </div>
-        <div className="card col-span-2 flex justify-between items-center p-3 bg-red-50 border-red-100">
+        <div className="card col-span-2 flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30">
           <div className="flex flex-col">
-            <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Valor Vencido</span>
-            <span className="text-lg font-bold text-red-700">{formatCurrency(stats.totalVencido)}</span>
+            <span className="text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-widest">Valor Vencido</span>
+            <span className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(stats.totalVencido)}</span>
           </div>
           <div className="bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-bold">
             {stats.parcelasVencidas} ⚠️
@@ -399,9 +399,9 @@ export const ClienteDetail: React.FC = () => {
       </section>
 
       {cliente.observacao && (
-        <section className="card bg-gray-50 border-none p-4">
-          <h3 className="text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-widest">Observações</h3>
-          <p className="text-sm text-gray-600 leading-relaxed">{cliente.observacao}</p>
+        <section className="card bg-gray-50 dark:bg-gray-900 border-none p-4">
+          <h3 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 tracking-widest">Observações</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{cliente.observacao}</p>
         </section>
       )}
 

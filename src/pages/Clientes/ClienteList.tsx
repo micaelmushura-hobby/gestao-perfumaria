@@ -66,16 +66,16 @@ export const ClienteList: React.FC = () => {
               key={cliente.id}
               to={`/clientes/${cliente.id}`}
               state={{ cliente }}
-              className="card flex items-center justify-between active:bg-gray-50 bg-white"
+              className="card flex items-center justify-between active:bg-gray-50 dark:active:bg-gray-800"
             >
               <div className="flex flex-col gap-1">
-                <span className="font-bold text-lg">{cliente.nome}</span>
-                <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                <span className="font-bold text-lg dark:text-white">{cliente.nome}</span>
+                <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-sm">
                   <Phone size={14} />
                   <span>{formatPhone(cliente.telefone)}</span>
                 </div>
               </div>
-              <ChevronRight size={20} className="text-gray-300" />
+              <ChevronRight size={20} className="text-gray-300 dark:text-gray-600" />
             </Link>
           ))
         ) : (

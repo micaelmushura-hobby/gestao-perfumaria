@@ -154,13 +154,13 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-brand-primary text-white card border-none shadow-xl flex flex-col gap-4 p-6 relative overflow-hidden">
+        <div className="bg-brand-primary text-white card border-none shadow-xl flex flex-col gap-4 p-6 relative overflow-hidden dark:bg-black">
            <div className="absolute top-0 right-0 p-4 opacity-10">
               <TrendingUp size={120} />
            </div>
            <div className="z-10">
              <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Faturamento Total</span>
-             <h3 className="text-4xl font-display font-bold mt-1">{formatCurrency(stats.faturamentoTotal)}</h3>
+             <h3 className="text-4xl font-display font-bold mt-1 text-white">{formatCurrency(stats.faturamentoTotal)}</h3>
              <div className="flex items-center gap-2 mt-4 text-sm">
                 <span className="text-brand-accent bg-brand-accent/20 px-2 py-0.5 rounded-md font-bold">
                   {formatCurrency(stats.lucroTotal)} de lucro

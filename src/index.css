@@ -7,16 +7,31 @@
   
   --color-brand-primary: #101010;
   --color-brand-accent: #D4AF37; /* Metallic Gold for luxury feel */
+
+  /* Dark mode palette */
+  --color-dark-bg: #050505;
+  --color-dark-surface: #0E0E0E;
+  --color-dark-border: #1A1A1A;
 }
+
+/* Enable class-based dark mode in Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
 
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 font-sans antialiased selection:bg-brand-accent selection:text-white pb-20;
-    @apply dark:bg-gray-950 dark:text-gray-100;
+  }
+  
+  .dark body {
+    @apply bg-dark-bg text-gray-100;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight dark:text-white;
+    @apply font-display font-semibold tracking-tight;
+  }
+
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    @apply text-white;
   }
 }
 
@@ -28,21 +43,21 @@
   
   .btn-secondary {
     @apply bg-white border border-gray-200 text-gray-900 px-5 py-2.5 rounded-xl font-medium transition-all active:scale-95 shadow-sm hover:bg-gray-50;
-    @apply dark:bg-gray-900 dark:border-gray-800 dark:text-gray-100 dark:hover:bg-gray-800;
+    @apply dark:bg-dark-surface dark:border-dark-border dark:text-gray-100 dark:hover:bg-dark-surface/80;
   }
   
   .card {
     @apply bg-white border border-gray-100 rounded-2xl p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)];
-    @apply dark:bg-gray-900 dark:border-gray-800 dark:shadow-none;
+    @apply dark:bg-dark-surface dark:border-dark-border dark:shadow-none;
   }
   
   .input-field {
     @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-transparent outline-none transition-all placeholder:text-gray-400;
-    @apply dark:bg-gray-900 dark:border-gray-800 dark:text-white dark:placeholder:text-gray-600;
+    @apply dark:bg-dark-surface dark:border-dark-border dark:text-white dark:placeholder:text-gray-700;
   }
   
   .label {
     @apply block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5 ml-1;
-    @apply dark:text-gray-400;
+    @apply dark:text-gray-500;
   }
 }

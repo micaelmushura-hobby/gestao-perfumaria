@@ -212,8 +212,8 @@ export const Parcelas: React.FC = () => {
               className={cn(
                 "px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border",
                 filter === f 
-                  ? "bg-brand-primary text-white border-brand-primary" 
-                  : "bg-white text-gray-500 border-gray-100 shadow-sm"
+                  ? "bg-brand-primary dark:bg-brand-accent text-white dark:text-black border-brand-primary dark:border-brand-accent" 
+                  : "bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-gray-800 shadow-sm"
               )}
             >
               {f}
@@ -225,7 +225,7 @@ export const Parcelas: React.FC = () => {
       <div className="flex flex-col gap-3">
         {loading && parcelas.length === 0 ? (
           Array.from({ length: 6 }).map((_, i) => (
-             <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+             <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-2xl animate-pulse" />
           ))
         ) : filteredParcelas.length > 0 ? (
           filteredParcelas.map((parcela) => {
@@ -237,21 +237,21 @@ export const Parcelas: React.FC = () => {
               <div key={parcela.id} className={cn(
                 "card flex flex-col gap-3 transition-all",
                 isPaid ? "opacity-70 grayscale-[0.5]" : "",
-                overdue && !isPaid ? "border-red-100 bg-red-50/10" : ""
+                overdue && !isPaid ? "border-red-100 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/10" : ""
               )}>
                 <div className="flex justify-between items-start">
                    <div className="flex flex-col">
-                      <span className="font-bold text-md">{parcela.cliente_nome}</span>
-                      <span className="text-xs text-gray-400 font-medium">#{parcela.venda_id} • Parcela {parcela.numero_parcela}</span>
+                      <span className="font-bold text-md dark:text-gray-100">{parcela.cliente_nome}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">#{parcela.venda_id} • Parcela {parcela.numero_parcela}</span>
                    </div>
                    <div className="flex flex-col items-end">
                       <span className={cn(
-                        "text-sm font-bold uppercase tracking-wider",
-                        overdue && !isPaid ? "text-red-600" : "text-gray-400"
+                         "text-sm font-bold uppercase tracking-wider",
+                         overdue && !isPaid ? "text-red-600 dark:text-red-400" : "text-gray-400 dark:text-gray-500"
                       )}>
                         {overdue && !isPaid ? "⚠️ Vencido" : formatDate(parcela.vencimento)}
                       </span>
-                      <span className="text-xl font-display font-bold">{formatCurrency(parcela.valor_parcela)}</span>
+                      <span className="text-xl font-display font-bold dark:text-white">{formatCurrency(parcela.valor_parcela)}</span>
                    </div>
                 </div>
 
@@ -259,7 +259,7 @@ export const Parcelas: React.FC = () => {
                   {isPaid ? (
                     <button 
                       onClick={() => handleStatusChange(parcela, 'Em Aberto')}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-100 text-gray-500 rounded-xl text-xs font-bold border border-gray-200"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700"
                     >
                       <Circle size={14} />
                       Voltar para Aberto
@@ -267,7 +267,7 @@ export const Parcelas: React.FC = () => {
                   ) : (
                     <button 
                       onClick={() => handleStatusChange(parcela, 'Pago')}
-                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-600 text-white rounded-xl text-xs font-bold border border-green-700"
+                      className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-600 dark:bg-green-700 text-white rounded-xl text-xs font-bold border border-green-700 dark:border-green-800"
                     >
                       <CheckCircle2 size={14} />
                       Marcar Pago
@@ -277,7 +277,7 @@ export const Parcelas: React.FC = () => {
                   {!isPaid && (
                    <button 
                       onClick={() => sendWhatsAppCollection(parcela)}
-                      className="w-12 h-10 flex items-center justify-center bg-brand-primary text-brand-accent rounded-xl border border-brand-primary"
+                      className="w-12 h-10 flex items-center justify-center bg-brand-primary dark:bg-brand-accent text-brand-accent dark:text-black rounded-xl border border-brand-primary dark:border-brand-accent"
                     >
                       <MessageSquare size={18} />
                     </button>
@@ -286,7 +286,7 @@ export const Parcelas: React.FC = () => {
                   <button 
                     onClick={() => handleDeleteSale(Number(parcela.venda_id))}
                     disabled={isDeleting}
-                    className="w-12 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl border border-red-100 hover:bg-red-100 disabled:opacity-50"
+                    className="w-12 h-10 flex items-center justify-center bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50"
                     title="Excluir Venda"
                   >
                     <Trash2 size={18} />
